@@ -1,0 +1,45 @@
+html, body {
+  width: 700px;
+}
+
+.hidden {
+  display: none;
+}
+
+.button {
+  margin: 10px 50px 10px 50px;
+  padding: 10px;
+  text-align: center;
+  font-family: 'Lato';
+  font-size: 1em;
+  cursor: pointer;
+  display:inline-block;
+}
+
+.right{
+  float: right;
+}
+
+.url{
+  white-space: nowrap;
+  margin-bottom: 1%;
+
+}
+
+.name{
+  position: absolute;
+  top: 3px;
+  left: 110px;
+  font-family: 'Lato';
+  font-size: 25px;
+  font-weight: 300;
+  cursor: default;
+}
+
+.urls {
+  list-style: none;
+  background: none;
+  margin: 0;
+  padding: 20px 20px 20px 20px;
+  margin-top: 60px;
+}

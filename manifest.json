@@ -1,0 +1,29 @@
+{
+  "description": "Demonstrating webRequests",
+  "manifest_version": 2,
+  "name": "webRequest-demo",
+  "version": "1.0",
+
+  "permissions": [
+    "webRequest",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["jquery-3.4.1.js"]
+      }
+  ],
+
+  "browser_action": {
+    "default_icon": "button/logo.png",
+    "default_title": "Requests",
+    "default_popup": "popup/show_urls.html",
+    "browser_style": true
+  }
+}
