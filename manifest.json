@@ -1,12 +1,13 @@
 {
-  "description": "Demonstrating webRequests",
+  "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
   "manifest_version": 2,
-  "name": "webRequest-demo",
+  "name": "Tracking Categorizer",
   "version": "1.0",
 
   "permissions": [
     "webRequest",
-    "<all_urls>"
+    "<all_urls>",
+    "tabs"
   ],
 
   "background": {
@@ -15,8 +16,7 @@
 
   "content_scripts": [
       {
-        "matches": ["<all_urls>"],
-        "js": ["jquery-3.4.1.js"]
+        "matches": ["<all_urls>"]
       }
   ],
 

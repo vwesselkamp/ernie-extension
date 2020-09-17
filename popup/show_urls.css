@@ -36,6 +36,16 @@ html, body {
   cursor: default;
 }
 
+.page{
+  position: absolute;
+  top: 3px;
+  left: 310px;
+  font-family: 'Lato';
+  font-size: 25px;
+  font-weight: 300;
+  cursor: default;
+}
+
 .urls {
   list-style: none;
   background: none;

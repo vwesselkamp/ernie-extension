@@ -1,18 +1,13 @@
-let facebook = [
-			"facebook.com",
-			"facebook.net",
-			"fbcdn.com",
-			"fbcdn.net"
-		]
-
-var facebook_mode = false;
+var thirdParty_mode = false;
 var tabId;
+var rootUrl;
+var urlsByTab;
 
-function insertUrl(url, owner) {
+function insertUrl(url, party) {
  document.getElementById("urls").insertAdjacentHTML('beforeend', `
-     <li class="` + owner + ` url">
+     <li class="` + party + ` url">
        <div>
-        `+ url + `
+        `+ party + ` : `+ url + `
         </div>
      </li>`
    );
@@ -20,29 +15,21 @@ function insertUrl(url, owner) {
    toggleMode();
 }
 
-function checkIfOwnedByFB(url){
-  for(let i= 0; i< facebook.length; i++){
-    if(url.includes(facebook[i])){
-      return "facebook";
-    }
-  }
-  return "other";
-}
-
-function logURL(requestDetails) {
-	if (requestDetails.tabId == tabId){
-    insertUrl(requestDetails.url, checkIfOwnedByFB(requestDetails.url));
-  }
-}
-
+//either hides all non relevant items or displays them
 function toggleMode(){
   var divsToHide = document.getElementsByClassName("other");
   for(var i = 0; i < divsToHide.length; i++){
-    if(facebook_mode){
+    if(thirdParty_mode){ //pull it up on the highest level?
       divsToHide[i].style.display = "none";
     } else {
       divsToHide[i].style.display = "block"
     }
+  }
+}
+
+function handleWebRequest(message){
+  if(message.request.tabId == tabId){
+    insertUrl(message.request.url, "new");
   }
 }
 
@@ -51,25 +38,25 @@ gettingActiveTab.then((tabs) => {
 	tabId = tabs[0].id;
 	var getting = browser.runtime.getBackgroundPage();
 	getting.then((page) => {
-		Object.keys(page.urlsByTab[tabId]).forEach(function(key,index) {
-	    insertUrl(key, page.urlsByTab[tabId][key]);
+		rootUrl = page.rootUrl;
+		urlsByTab = page.urlsByTab
+		document.getElementById("current-page").innerHTML = "Page: " + rootUrl;
+		Object.keys(urlsByTab[tabId]).forEach(function(key,index) { //  can't convert undefined to object
+	    insertUrl(key, urlsByTab[tabId][key]);
 	  });
 	});
 });
 
-document.getElementById("facebook_button").addEventListener("click", function(){
-  document.getElementById("popup-title").innerHTML = "Facebook Requests";
-  facebook_mode = true;
+document.getElementById("thirdParty_button").addEventListener("click", function(){
+  document.getElementById("popup-title").innerHTML = "Third Party Requests";
+  thirdParty_mode = true;
   toggleMode()
 });
 
 document.getElementById("all").addEventListener("click", function(){
   document.getElementById("popup-title").innerHTML = "All Requests";
-  facebook_mode = false;
+  thirdParty_mode = false;
   toggleMode();
 });
 
-browser.webRequest.onBeforeRequest.addListener(
-  logURL,
-  {urls: ["<all_urls>"]}
-);
+browser.runtime.onMessage.addListener(handleWebRequest);
