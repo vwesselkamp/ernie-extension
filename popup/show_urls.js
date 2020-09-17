@@ -1,11 +1,11 @@
 var thirdParty_mode = false;
 var tabId;
 
-function insertUrl(url, party) {
+function insertUrl(url, domain, party) {
  document.getElementById("urls").insertAdjacentHTML('beforeend', `
      <li class="` + party + ` url">
        <div>
-        `+ party + ` : `+ url + `
+        `+ party + ` : ` + domain + ` : `+ url + `
         </div>
      </li>`
    );
@@ -26,8 +26,8 @@ function toggleMode(){
 }
 
 function handleWebRequest(message){
-  if(message.request.tabId == tabId){
-    insertUrl(message.request.url, "new");
+  if(message.request.webRequest.tabId == tabId){
+    insertUrl(message.request.webRequest.url, message.request.domain, message.request.party);
   }
 }
 
@@ -37,9 +37,9 @@ gettingActiveTab.then((tabs) => {
 	var getting = browser.runtime.getBackgroundPage();
 	getting.then((page) => {
 		document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
-		Object.keys(urlsByTab[tabId]).forEach(function(key,index) { //  can't convert undefined to object
-	    insertUrl(key, page.urlsByTab[tabId][key]);
-	  });
+		page.urlsByTab[tabId].forEach((request, i) => {
+      insertUrl(request.webRequest.url, request.domain, request.party);
+    });
 	});
 });
 
