@@ -1,5 +1,4 @@
 var thirdParty_mode = false;
-var tabId;
 
 function insertUrl(url, domain, party) {
  document.getElementById("urls").insertAdjacentHTML('beforeend', `
@@ -15,7 +14,7 @@ function insertUrl(url, domain, party) {
 
 //either hides all non relevant items or displays them
 function toggleMode(){
-  var divsToHide = document.getElementsByClassName("other");
+  var divsToHide = document.getElementsByClassName("first");
   for(var i = 0; i < divsToHide.length; i++){
     if(thirdParty_mode){ //pull it up on the highest level?
       divsToHide[i].style.display = "none";
@@ -25,19 +24,12 @@ function toggleMode(){
   }
 }
 
-function handleWebRequest(message){
-  if(message.request.webRequest.tabId == tabId){
-    insertUrl(message.request.webRequest.url, message.request.domain, message.request.party);
-  }
-}
-
 var gettingActiveTab = browser.tabs.query({active: true, currentWindow: true});
 gettingActiveTab.then((tabs) => {
-	tabId = tabs[0].id;
 	var getting = browser.runtime.getBackgroundPage();
 	getting.then((page) => {
 		document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
-		page.urlsByTab[tabId].forEach((request, i) => {
+		page.urlsByTab[tabs[0].id].forEach((request, i) => {
       insertUrl(request.webRequest.url, request.domain, request.party);
     });
 	});
@@ -55,4 +47,6 @@ document.getElementById("all").addEventListener("click", function(){
   toggleMode();
 });
 
-browser.runtime.onMessage.addListener(handleWebRequest);
+browser.runtime.onMessage.addListener((message) => {
+  insertUrl(message.request.webRequest.url, message.request.domain, message.request.party);
+});
