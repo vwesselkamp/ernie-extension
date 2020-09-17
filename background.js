@@ -7,6 +7,8 @@ function RequestInfo(webRequest) {
   this.domain = getSecLevelDomain(webRequest.url);
   this.party = checkIfThirdParty(this.domain); // move this function into the object?
   this.header = webRequest.requestHeaders;
+  this.cookies = extractCookie(this.header);
+  console.log(this.cookies)
 }
 
 function ResponseInfo(webRequest) {
@@ -14,6 +16,14 @@ function ResponseInfo(webRequest) {
   this.domain = getSecLevelDomain(webRequest.url);
   this.party = checkIfThirdParty(this.domain); // move this function into the object?
   this.header = webRequest.responseHeaders;
+  this.cookies = extractCookie(this.header);
+  console.log(this.cookies)
+}
+
+function Cookie(url, key, value){
+  this.url = url;
+  this.key = key;
+  this.value = value;
 }
 
 function checkIfThirdParty(domain){
@@ -21,6 +31,27 @@ function checkIfThirdParty(domain){
   	return "third";
   }
   return "first";
+}
+
+function extractCookie(header) {
+  header.forEach((attribute) => {
+    console.log(attribute.name);
+    if (attribute.name == "Set-Cookie" || attribute.name == "Cookie") {
+      //return extractCookieFromHeader(this.url, attribute.value);
+      console.log(attribute.value);
+      return attribute.value;
+    }
+  })
+  return null;
+}
+
+function extractCookieFromHeader(url, headerCookies){
+  let cookies = [];
+  console.log(headerCookies);
+  headerCookies.forEach((cookie) => {
+    cookies.push(new Cookie(url, cookie.name, cookie.value))
+  })
+  return cookies;
 }
 
 function logRequest(requestDetails) {
