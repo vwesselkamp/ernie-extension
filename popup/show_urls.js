@@ -4,7 +4,7 @@ function insertUrl(url, domain, party) {
  document.getElementById("urls").insertAdjacentHTML('beforeend', `
      <li class="` + party + ` url">
        <div>
-        `+ party + ` : ` + domain + ` : `+ url + `
+        `+ domain + ` : `+ url + `
         </div>
      </li>`
    );
@@ -14,8 +14,8 @@ function insertUrl(url, domain, party) {
 
 //either hides all non relevant items or displays them
 function toggleMode(){
-  var divsToHide = document.getElementsByClassName("first");
-  for(var i = 0; i < divsToHide.length; i++){
+  const divsToHide = document.getElementsByClassName("first");
+  for(let i = 0; i < divsToHide.length; i++){
     if(thirdParty_mode){ //pull it up on the highest level?
       divsToHide[i].style.display = "none";
     } else {
@@ -26,13 +26,13 @@ function toggleMode(){
 
 var gettingActiveTab = browser.tabs.query({active: true, currentWindow: true});
 gettingActiveTab.then((tabs) => {
-	var getting = browser.runtime.getBackgroundPage();
-	getting.then((page) => {
-		document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
-		page.urlsByTab[tabs[0].id].forEach((request, i) => {
-      insertUrl(request.webRequest.url, request.domain, request.party);
+  var getting = browser.runtime.getBackgroundPage();
+  getting.then((page) => {
+    document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
+    page.requestsByTab[tabs[0].id].forEach((request, i) => {
+      insertUrl(request.url, request.domain, request.party);
     });
-	});
+  });
 });
 
 document.getElementById("thirdParty_button").addEventListener("click", function(){

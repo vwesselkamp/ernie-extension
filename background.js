@@ -1,10 +1,19 @@
-var requestsByTab = {};
+var requestsByTab = [];
+var responsesByTab = [];
 var rootUrl;
 
 function RequestInfo(webRequest) {
-  this.webRequest = webRequest;
+  this.url = webRequest.url;
   this.domain = getSecLevelDomain(webRequest.url);
   this.party = checkIfThirdParty(this.domain); // move this function into the object?
+  this.header = webRequest.requestHeaders;
+}
+
+function ResponseInfo(webRequest) {
+  this.url = webRequest.url;
+  this.domain = getSecLevelDomain(webRequest.url);
+  this.party = checkIfThirdParty(this.domain); // move this function into the object?
+  this.header = webRequest.responseHeaders;
 }
 
 function checkIfThirdParty(domain){
@@ -14,22 +23,32 @@ function checkIfThirdParty(domain){
   return "first";
 }
 
-function logURL(requestDetails) {
+function logRequest(requestDetails) {
   //what behaviour is causing this? can be replaced by clearTab?
 	if(requestsByTab[requestDetails.tabId] == undefined || requestDetails.originUrl == undefined){
 		requestsByTab[requestDetails.tabId] = [];
   } else {
     let request = new RequestInfo(requestDetails);
     requestsByTab[requestDetails.tabId].push(request);
-    if(request.webRequest.tabId == getActiveTab()) {
+    if(requestDetails.tabId == getActiveTab()) {
       notifyPopupOfNewRequests(request);
     }
+  }
+}
+
+function logResponse(responseDetails) {
+  if(responsesByTab[responseDetails.tabId] == undefined || responseDetails.originUrl == undefined){
+    responsesByTab[responseDetails.tabId] = [];
+  } else {
+    let response = new ResponseInfo(responseDetails);
+    responsesByTab[responseDetails.tabId].push(response);
   }
 }
 
 function clearTab(){
   var tab = setRootUrl();
   requestsByTab[tab] = [];
+  responsesByTab[tab] = [];
 }
 
 function setRootUrl() { // use this in line 11
@@ -66,7 +85,13 @@ browser.tabs.onUpdated.addListener(clearTab);
 browser.tabs.onActivated.addListener(setRootUrl);
 
 browser.webRequest.onSendHeaders.addListener(
-  logURL,
+  logRequest,
 	{urls: ["<all_urls>"]},
   ["requestHeaders"]
+);
+
+browser.webRequest.onHeadersReceived.addListener(
+    logResponse,
+    {urls: ["<all_urls>"]},
+    ["responseHeaders"]
 );
