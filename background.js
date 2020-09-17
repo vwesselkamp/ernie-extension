@@ -21,7 +21,7 @@ function tabUpdate() { // use this in line 11
   getActiveTab().then((tabs) => {
     let tab = tabs[0];
 		const url = new URL(tab.url);
-		rootUrl = url.hostname;
+		rootUrl = url.hostname.split('.').splice(-2).join("."); 
   });
 }
 

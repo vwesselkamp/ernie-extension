@@ -1,7 +1,5 @@
 var thirdParty_mode = false;
 var tabId;
-var rootUrl;
-var urlsByTab;
 
 function insertUrl(url, party) {
  document.getElementById("urls").insertAdjacentHTML('beforeend', `
@@ -38,11 +36,9 @@ gettingActiveTab.then((tabs) => {
 	tabId = tabs[0].id;
 	var getting = browser.runtime.getBackgroundPage();
 	getting.then((page) => {
-		rootUrl = page.rootUrl;
-		urlsByTab = page.urlsByTab
-		document.getElementById("current-page").innerHTML = "Page: " + rootUrl;
+		document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
 		Object.keys(urlsByTab[tabId]).forEach(function(key,index) { //  can't convert undefined to object
-	    insertUrl(key, urlsByTab[tabId][key]);
+	    insertUrl(key, page.urlsByTab[tabId][key]);
 	  });
 	});
 });
