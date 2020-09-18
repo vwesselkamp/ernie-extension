@@ -1,4 +1,4 @@
-var requestsByTab = [];
+var requestsByTab = {};
 var responsesByTab = [];
 var rootUrl;
 
@@ -7,8 +7,8 @@ function RequestInfo(webRequest) {
   this.domain = getSecLevelDomain(webRequest.url);
   this.party = checkIfThirdParty(this.domain); // move this function into the object?
   this.header = webRequest.requestHeaders;
-  this.cookies = extractCookie(this.header);
-  console.log(this.cookies)
+  // this.cookies = extractCookie(this.header);
+  // console.log(this.cookies)
 }
 
 function ResponseInfo(webRequest) {
@@ -16,8 +16,8 @@ function ResponseInfo(webRequest) {
   this.domain = getSecLevelDomain(webRequest.url);
   this.party = checkIfThirdParty(this.domain); // move this function into the object?
   this.header = webRequest.responseHeaders;
-  this.cookies = extractCookie(this.header);
-  console.log(this.cookies)
+  // this.cookies = extractCookie(this.header);
+  // console.log(this.cookies)
 }
 
 function Cookie(url, key, value){
@@ -35,10 +35,10 @@ function checkIfThirdParty(domain){
 
 function extractCookie(header) {
   header.forEach((attribute) => {
-    console.log(attribute.name);
+    // console.log(attribute.name);
     if (attribute.name == "Set-Cookie" || attribute.name == "Cookie") {
       //return extractCookieFromHeader(this.url, attribute.value);
-      console.log(attribute.value);
+      // console.log(attribute.value);
       return attribute.value;
     }
   })
@@ -47,7 +47,7 @@ function extractCookie(header) {
 
 function extractCookieFromHeader(url, headerCookies){
   let cookies = [];
-  console.log(headerCookies);
+  // console.log(headerCookies);
   headerCookies.forEach((cookie) => {
     cookies.push(new Cookie(url, cookie.name, cookie.value))
   })
@@ -56,14 +56,17 @@ function extractCookieFromHeader(url, headerCookies){
 
 function logRequest(requestDetails) {
   //what behaviour is causing this? can be replaced by clearTab?
-	if(requestsByTab[requestDetails.tabId] == undefined || requestDetails.originUrl == undefined){
-		requestsByTab[requestDetails.tabId] = [];
+  if(requestsByTab[requestDetails.tabId] == undefined || requestDetails.originUrl == undefined){
+    console.log("undefined request info " + requestDetails.url)
+    requestsByTab[requestDetails.tabId] = [];
   } else {
     let request = new RequestInfo(requestDetails);
     requestsByTab[requestDetails.tabId].push(request);
-    if(requestDetails.tabId == getActiveTab()) {
-      notifyPopupOfNewRequests(request);
-    }
+    getActiveTab().then((tabs) => {
+      if (requestDetails.tabId == tabs[0].id) {
+        notifyPopupOfNewRequests(request);
+      }
+    });
   }
 }
 
@@ -76,17 +79,19 @@ function logResponse(responseDetails) {
   }
 }
 
-function clearTab(){
-  var tab = setRootUrl();
-  requestsByTab[tab] = [];
-  responsesByTab[tab] = [];
+function clearTab(tabId, changeInfo, tabInfo){
+  setRootUrl();
+  if(changeInfo.url && changeInfo.status == "loading") {
+    requestsByTab[tabId] = [];
+    responsesByTab[tabId] = [];
+    console.log("clearing " + tabInfo.url)
+  }
 }
 
-function setRootUrl() { // use this in line 11
+function setRootUrl() { // activeInfo also contains tabId
   getActiveTab().then((tabs) => {
     let tab = tabs[0];
-		rootUrl = getSecLevelDomain(tab.url);
-    return tab;
+    rootUrl = getSecLevelDomain(tab.url);
   });
 }
 
@@ -106,12 +111,26 @@ function notifyPopupOfNewRequests(request) {
   var sending = browser.runtime.sendMessage({
     request: request
   });
-  // sending.then(handleResponse, handleError);
+
+  function handleError() {
+    return;
+  }
+
+  function handleResponse() {
+    return;
+  }
+
+  sending.then(handleResponse, handleError);
 }
+
+const clearFilter = {
+  properties: ["status"]
+}
+
 
 setRootUrl();
 // update when the tab is updated
-browser.tabs.onUpdated.addListener(clearTab);
+browser.tabs.onUpdated.addListener(clearTab, clearFilter);
 // update when the tab is activated
 browser.tabs.onActivated.addListener(setRootUrl);
 
