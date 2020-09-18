@@ -30,17 +30,37 @@ html, body {
   position: absolute;
   top: 3px;
   left: 110px;
-  font-family: 'Lato';
+  font-family: 'Lato', serif;
   font-size: 25px;
   font-weight: 300;
   cursor: default;
+}
+
+.statistics{
+  position: absolute;
+  top: 60px;
+  left: 80px;
+  font-family: 'Lato', serif;
+  cursor: default;
+}
+
+.stat-container{
+  text-align: center;
+}
+
+.stat {
+  display: inline-block;
+  width: 200px;
+}
+.counter{
+  display: inline-block;
 }
 
 .page{
   position: absolute;
   top: 3px;
   left: 310px;
-  font-family: 'Lato';
+  font-family: 'Lato', serif;
   font-size: 25px;
   font-weight: 300;
   cursor: default;
@@ -49,9 +69,8 @@ html, body {
 .urls {
   list-style: none;
   background: none;
-  margin: 0;
   padding: 20px 20px 20px 20px;
-  margin-top: 60px;
+  margin: 200px 0 0;
 }
 
 .third {

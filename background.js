@@ -70,12 +70,13 @@ class RequestInfo extends HttpInfo{
 
   //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
   extractCookie(header) {
+    let cookies = [];
     header.forEach((attribute) => {
       if (attribute.name.toLowerCase() === "cookie") {
-        return this.extractCookieFromHeader(this.url, attribute.value);
+        cookies = this.extractCookieFromHeader(this.url, attribute.value);
       }
     })
-    return [];
+    return cookies;
   }
 
   extractCookieFromHeader(url, headerCookies){
