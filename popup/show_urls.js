@@ -5,9 +5,9 @@ function insertUrl(url, domain, party) {
   let node = document.createElement("LI");
   node.appendChild(document.createTextNode(domain + " : " + url));
   node.className = party;
-  // if(party == "first") {
-  //   hideElement(node);
-  // }
+  if(party == "first") {
+    hideElement(node);
+  }
   document.getElementById("urls").appendChild(node);
   window.scrollTo(0,document.body.scrollHeight);
 }
@@ -31,12 +31,10 @@ function toggleMode(){
 
 var getting = browser.runtime.getBackgroundPage();
 getting.then((page) => {
-  document.getElementById("current-page").innerHTML = "Page: " + page.rootUrl;
-  page.getActiveTab().then((tabs) => {
-    page.requestsByTab[tabs[0].id].forEach((request, i) => { // error if no reqeusts in that tab yet
-      insertUrl(request.url, request.domain, request.party);
-    });
-  })
+  document.getElementById("current-page").innerHTML = "Page: " + page.tabs[page.currentTab].domain;
+  page.tabs[page.currentTab].requests.forEach((request, i) => { // error if no reqeusts in that tab yet
+    insertUrl(request.url, request.domain, request.party);
+  });
 });
 
 

@@ -1,36 +1,52 @@
-var requestsByTab = {};
-var responsesByTab = [];
-var rootUrl;
+var currentTab;
+var tabs = [];
 
-function RequestInfo(webRequest) {
-  this.url = webRequest.url;
-  this.domain = getSecLevelDomain(webRequest.url);
-  this.party = checkIfThirdParty(this.domain); // move this function into the object?
-  this.header = webRequest.requestHeaders;
-  // this.cookies = extractCookie(this.header);
-  // console.log(this.cookies)
+class TabInfo {
+  constructor(tab) {
+    this.domain = getSecLevelDomain(tab.url)
+    this.requests = [];
+    this.responses = [];
+  }
+}
+class HttpInfo{
+
+  constructor(webRequest) {
+    this.url = webRequest.url;
+    this.tabId = webRequest.tabId;
+    this.domain = getSecLevelDomain(webRequest.url);
+    this.party = this.checkIfThirdParty(); // move this function into the object?
+    this.header = webRequest.requestHeaders;
+    // this.cookies = extractCookie(this.header);
+    // console.log(this.cookies)
+  }
+
+  checkIfThirdParty(){
+    if(this.domain !== tabs[this.tabId].domain){
+      return "third";
+    }
+    return "first";
+  }
 }
 
-function ResponseInfo(webRequest) {
-  this.url = webRequest.url;
-  this.domain = getSecLevelDomain(webRequest.url);
-  this.party = checkIfThirdParty(this.domain); // move this function into the object?
-  this.header = webRequest.responseHeaders;
-  // this.cookies = extractCookie(this.header);
-  // console.log(this.cookies)
+class RequestInfo extends HttpInfo{
+  archive(tabId){
+    tabs[tabId].requests.push(this);
+    if (tabId === currentTab) {
+      notifyPopupOfNewRequests(this);
+    }
+  }
+}
+
+class ResponseInfo extends HttpInfo{
+  archive(tabId){
+    tabs[tabId].responses.push(this);
+  }
 }
 
 function Cookie(url, key, value){
   this.url = url;
   this.key = key;
   this.value = value;
-}
-
-function checkIfThirdParty(domain){
-  if(domain != rootUrl){
-  	return "third";
-  }
-  return "first";
 }
 
 function extractCookie(header) {
@@ -54,44 +70,42 @@ function extractCookieFromHeader(url, headerCookies){
   return cookies;
 }
 
-function logRequest(requestDetails) {
-  //what behaviour is causing this? can be replaced by clearTab?
-  if(requestsByTab[requestDetails.tabId] == undefined || requestDetails.originUrl == undefined){
+function cleanTab(tabId) {
+  browser.tabs.get(tabId).then((tab) => {
+    tabs[tabId] = new TabInfo(tab);
+  })
+}
+
+function logHeader(requestDetails, webRequest) {
+  if(tabs[requestDetails.tabId] == undefined){
+    cleanTab(requestDetails.tabId);
+  } else if (requestDetails.originUrl == undefined){
     console.log("undefined request info " + requestDetails.url)
-    requestsByTab[requestDetails.tabId] = [];
-  } else {
-    let request = new RequestInfo(requestDetails);
-    requestsByTab[requestDetails.tabId].push(request);
-    getActiveTab().then((tabs) => {
-      if (requestDetails.tabId == tabs[0].id) {
-        notifyPopupOfNewRequests(request);
-      }
-    });
   }
+
+  webRequest.archive(requestDetails.tabId);
+}
+function logRequest(requestDetails) {
+  let request = new RequestInfo(requestDetails);
+  logHeader(requestDetails, request);
 }
 
 function logResponse(responseDetails) {
-  if(responsesByTab[responseDetails.tabId] == undefined || responseDetails.originUrl == undefined){
-    responsesByTab[responseDetails.tabId] = [];
-  } else {
-    let response = new ResponseInfo(responseDetails);
-    responsesByTab[responseDetails.tabId].push(response);
-  }
+  let response = new ResponseInfo(responseDetails);
+  logHeader(responseDetails, response);
 }
 
 function clearTab(tabId, changeInfo, tabInfo){
-  setRootUrl();
+  setCurrentTab();
   if(changeInfo.url && changeInfo.status == "loading") {
-    requestsByTab[tabId] = [];
-    responsesByTab[tabId] = [];
+    cleanTab(tabId)
     console.log("clearing " + tabInfo.url)
   }
 }
 
-function setRootUrl() { // activeInfo also contains tabId
+function setCurrentTab() { // activeInfo also contains tabId
   getActiveTab().then((tabs) => {
-    let tab = tabs[0];
-    rootUrl = getSecLevelDomain(tab.url);
+    currentTab = tabs[0].id;
   });
 }
 
@@ -128,14 +142,28 @@ const clearFilter = {
 }
 
 
-setRootUrl();
+setCurrentTab();
+
+function initializeAllTabs(tabs) {
+  for (let tab of tabs) {
+    cleanTab(tab.id);
+  }
+}
+
+function onError(error) {
+  console.log(`Error: ${error}`);
+}
+
+let querying = browser.tabs.query({});
+querying.then(initializeAllTabs, onError);
+
 // update when the tab is updated
 browser.tabs.onUpdated.addListener(clearTab, clearFilter);
 // update when the tab is activated
-browser.tabs.onActivated.addListener(setRootUrl);
+browser.tabs.onActivated.addListener(setCurrentTab);
 
 browser.webRequest.onSendHeaders.addListener(
-  logRequest,
+    logRequest,
 	{urls: ["<all_urls>"]},
   ["requestHeaders"]
 );
