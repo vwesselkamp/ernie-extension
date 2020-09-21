@@ -1,3 +1,8 @@
+function getSecLevelDomain(tabUrl){
+    var url = new URL(tabUrl);
+    url = url.hostname.split('.').splice(-2).join(".");
+    return url;
+}
 
 /*
   Superclass of all HTTP communication
@@ -106,5 +111,32 @@ class ResponseInfo extends HttpInfo{
             .split(';', 1)
             .map(v => v.split(/=(.+)/)); // returns emptz string as third parameter for some reason
         return new Cookie(url, result[0][0], result[0][1]); // TODO ??
+    }
+}
+
+
+class Cookie{
+    constructor (url, key, value) {
+        this.url = url;
+        this.key = key;
+        this.value = value;
+        this.checkIfIdCookie();
+    }
+
+    checkIfIdCookie(){
+        var cookieStore = db.transaction(["cookies"]).objectStore("cookies");
+        var cookieIndex = cookieStore.index("url");
+
+        let result = cookieIndex.get(this.url);
+
+        // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
+        let scope = this;
+        result.onsuccess = function(event) {
+            if(event.target.result) {
+                scope.identifying = event.target.result.key === scope.key;
+            } else {
+                scope.identifying = false;
+            }
+        }
     }
 }

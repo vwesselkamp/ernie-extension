@@ -12,7 +12,7 @@
   ],
 
   "background": {
-    "scripts": ["background.js", "http-communication.js", "database.js"]
+    "scripts": ["manage-tabs.js", "http-communication.js", "database.js", "webrequests.js"]
   },
 
   "content_scripts": [
