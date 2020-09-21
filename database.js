@@ -5,6 +5,7 @@ const exampleCookies = [
     { url: "other.fr", key: "ts", value: "fjioeoij" }
 ];
 
+// the version determines if the database is reinitaliyzed or updated
 var request = indexedDB.open("extension-db", 1);
 
 request.onerror = function(event) {
@@ -13,6 +14,8 @@ request.onerror = function(event) {
 request.onsuccess = function(event) {
     db = event.target.result;
 };
+
+// database is constructed here
 request.onupgradeneeded = function(event) {
     console.log("database upgraded");
     var db = event.target.result;

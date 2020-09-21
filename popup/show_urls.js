@@ -27,13 +27,12 @@ function hideElement(element) {
   }
 }
 
+// currently static
 function setStats(tab){
-  document.getElementById("requests").innerHTML = tab.requests.length;
+  document.getElementById("requests").innerHTML = tab.requests.length.toString();
   document.getElementById("third").innerHTML = document.getElementsByClassName("third").length.toString();
   let send = 0;
   tab.requests.forEach((request) => {
-    // console.log(request.url)
-    // console.log(request.cookies.length)
     send += request.cookies.length;
   })
   document.getElementById("cookies-send").innerHTML = send.toString();
