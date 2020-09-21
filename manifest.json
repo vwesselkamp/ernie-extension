@@ -7,7 +7,8 @@
   "permissions": [
     "webRequest",
     "<all_urls>",
-    "tabs"
+    "tabs",
+    "webNavigation"
   ],
 
   "background": {

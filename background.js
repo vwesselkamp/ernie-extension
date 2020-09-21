@@ -6,8 +6,8 @@ var tabs = [];
 Class to keep track ov everything happening in a tab, until a new link is clicked or the site is refreshed
  */
 class TabInfo {
-  constructor(tab) {
-    this.domain = getSecLevelDomain(tab.url)
+  constructor(url) {
+    this.domain = getSecLevelDomain(url)
     this.requests = [];
     this.responses = [];
   }
@@ -21,20 +21,20 @@ class Cookie{
     this.checkIfIdCookie();
   }
 
-  test(){
-    console.log("test");
-  }
   checkIfIdCookie(){
     var cookieStore = db.transaction(["cookies"]).objectStore("cookies");
     var cookieIndex = cookieStore.index("url");
 
-    let result = cookieIndex.get("test.com");
+    let result = cookieIndex.get(this.url);
 
     // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
     let scope = this;
     result.onsuccess = function(event) {
-      scope.identifying = event.target.result.key === "uid";
-      console.log(scope.identifying)
+      if(event.target.result) {
+        scope.identifying = event.target.result.key === scope.key;
+      } else {
+        scope.identifying = false;
+      }
     }
   }
 }
@@ -42,8 +42,7 @@ class Cookie{
 
 function handleIrregularities(requestDetails) {
   if(tabs[requestDetails.tabId] === undefined){
-    console.log("New Tab")
-    initializeCleanTab(requestDetails.tabId);
+    console.log("New Tab at " + requestDetails.url)
   } else if (requestDetails.originUrl === undefined){ //TODO: when is this the case?
     console.log("undefined request info: " + requestDetails.url)
   }
@@ -65,20 +64,20 @@ function logResponse(responseDetails) {
 // new Tab after clicking link, reloading or after strtup
 // tabs -1 id
 function initializeCleanTab(tabId) {
-
+  if( tabId === -1 ) {
+    return;
+  }
   browser.tabs.get(tabId).then((tab) => {
-    tabs[tabId] = new TabInfo(tab);
+    tabs[tabId] = new TabInfo(tab.url);
   })
 }
 
 
-function clearTabsData(tabId, changeInfo, tabInfo){
-  setCurrentTab();
-  // if a new page call is made
-  if(changeInfo.url && changeInfo.status == "loading") {
-    initializeCleanTab(tabId)
-    console.log("clearing " + tabInfo.url)
-  }
+function clearTabsData(details){
+  setCurrentTab(); // probably unnecessary
+
+  tabs[details.tabId] = new TabInfo(details.url);
+  console.log("cleared " + details.url)
 }
 
 function setCurrentTab() { // activeInfo also contains tabId
@@ -119,7 +118,13 @@ querying.then(initializeAllTabs, onError);
 const clearFilter = {
   properties: ["status"]
 }
-browser.tabs.onUpdated.addListener(clearTabsData, clearFilter);
+
+browser.tabs.onCreated.addListener((tab) => {
+  initializeCleanTab(tab.id);
+});
+
+browser.webNavigation.onBeforeNavigate.addListener(clearTabsData);
+// browser.tabs.onUpdated.addListener(clearTabsData, clearFilter);
 // update when the tab is activated
 browser.tabs.onActivated.addListener(setCurrentTab);
 
