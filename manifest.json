@@ -11,7 +11,7 @@
   ],
 
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js", "http-communication.js", "database.js"]
   },
 
   "content_scripts": [
