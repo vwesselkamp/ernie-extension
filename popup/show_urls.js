@@ -5,7 +5,7 @@ function insertUrl(url, domain, party) {
   let node = document.createElement("LI");
   node.appendChild(document.createTextNode(domain + " : " + url));
   node.className = party;
-  if(party == "first") {
+  if(party === "first") {
     hideElement(node);
   }
   document.getElementById("urls").appendChild(node);

@@ -1,6 +1,6 @@
 function getSecLevelDomain(tabUrl){
     var url = new URL(tabUrl);
-    url = url.hostname.split('.').splice(-2).join(".");
+    url = psl.get(url.hostname); // look at a public suffix list and finds domains such as amazon.co.ukA
     return url;
 }
 
