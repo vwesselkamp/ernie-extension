@@ -32,7 +32,8 @@ class RequestInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.requestHeaders;
-        this.cookies = this.extractCookie(this.header);
+
+        this.cookies = this.extractFromHeader(this.header);
     }
 
     archive(tabId){
@@ -61,11 +62,13 @@ class RequestInfo extends HttpInfo{
     }
 
     //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
-    extractCookie(header) {
+    extractFromHeader(header) {
         let cookies = [];
         header.forEach((attribute) => {
             if (attribute.name.toLowerCase() === "cookie") {
                 cookies = this.extractCookieFromHeader(this.url, attribute.value);
+            } else if (attribute.name.toLowerCase() === "content-type"){
+                this.contentType = attribute.value;
             }
         })
         return cookies;
@@ -88,7 +91,7 @@ class ResponseInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.responseHeaders;
-        this.cookies = this.extractCookie(this.header);
+        this.cookies = this.extractFromHeader(this.header);
     }
 
     archive(tabId){
@@ -96,11 +99,13 @@ class ResponseInfo extends HttpInfo{
     }
 
     // in responses there can be mutiple set-coockies, they are collected and returned at once
-    extractCookie(header) {
+    extractFromHeader(header) {
         let cookies = [];
         header.forEach((attribute) => {
             if (attribute.name.toLowerCase() === "set-cookie") {
                 cookies.push(this.extractCookieFromHeader(this.url, attribute.value));
+            } else if (attribute.name.toLowerCase() === "content-type"){
+                this.contentType = attribute.value;
             }
         })
         return cookies;

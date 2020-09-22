@@ -55,7 +55,7 @@ function clearTabsData(details){
   setCurrentTab(); // probably unnecessary
 
   tabs[details.tabId] = new TabInfo(details.url);
-  console.log("cleared " + details.url)
+  console.log("cleared tab for " + details.url)
 }
 
 
