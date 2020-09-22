@@ -131,12 +131,18 @@ class Cookie{
 
         // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
         let scope = this;
-        result.onsuccess = function(event) {
-            if(event.target.result) {
-                scope.identifying = event.target.result.key === scope.key;
+        var indexRange = IDBKeyRange.only(getSecLevelDomain(this.url));
+        cookieIndex.openCursor(indexRange).onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                if (cursor.value.key === scope.key) {
+                    scope.identifying = false;
+                    console.log("Found safe cookie for " + scope.url + ": " + scope.key);
+                }
+                cursor.continue();
             } else {
-                scope.identifying = false;
+                scope.identifying = true;
             }
-        }
+        };
     }
 }

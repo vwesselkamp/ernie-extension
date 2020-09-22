@@ -1,15 +1,10 @@
 var db;
 
-const exampleCookies = [
-    { url: "test.com", key: "uid", value: "cookie" },
-    { url: "other.fr", key: "ts", value: "fjioeoij" }
-];
-
 // the version determines if the database is reinitaliyzed or updated
-var request = indexedDB.open("extension-db", 1);
+var request = indexedDB.open("extension-db", 5);
 
 request.onerror = function(event) {
-    console.log("error: ${event} " + event);
+    console.log("error: database could not be initialized"); // if occurs
 };
 request.onsuccess = function(event) {
     db = event.target.result;
@@ -20,6 +15,7 @@ request.onupgradeneeded = function(event) {
     console.log("database upgraded");
     var db = event.target.result;
 
+    db.deleteObjectStore("cookies");
     // objectstore with autoincrementing key as we dont have a natural primary key for the cookies
     var objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
 
@@ -31,9 +27,24 @@ request.onupgradeneeded = function(event) {
     // finished before adding data into it.
     objectStore.transaction.oncomplete = function(event) {
         // Store values in the newly created objectStore.
-        var cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
-        exampleCookies.forEach(function(cookie) {
-            cookieObjectStore.add(cookie);
-        });
+        parseCookieFile();
     };
+
+    function parseCookieFile(){
+        fetch('safe.txt')
+            .then(response => {
+                let text = response.text()
+                    .then(text => {
+                        let lines = text.split("\n");
+                        lines.shift(); //remove title with URL ... Key
+                        var cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+                        lines.forEach((cookieData) => {
+                            if(cookieData === "") return;
+
+                            let words = cookieData.split(" ");
+                            let cookie = { url: getSecLevelDomain(words[0]), key: words[1] };
+                            cookieObjectStore.add(cookie);
+                        })});
+            })
+    }
 };
