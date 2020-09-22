@@ -4,8 +4,8 @@ var thirdParty_mode = false;
 function insertUrl(url, domain, party) {
   let node = document.createElement("LI");
   node.appendChild(document.createTextNode(domain + " : " + url));
-  node.className = party;
-  if(party == "first") {
+  node.className = party + " url";
+  if(party === "first") {
     hideElement(node);
   }
   document.getElementById("urls").appendChild(node);
@@ -47,7 +47,7 @@ function setStats(tab){
 var getting = browser.runtime.getBackgroundPage();
 getting.then((page) => {
   document.getElementById("current-page").innerHTML = "Page: " + page.tabs[page.currentTab].domain;
-  page.tabs[page.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
+  page.tabs[page.currentTab].requests.forEach((request) => { // error if Tab not initilized
     insertUrl(request.url, request.domain, request.party);
   });
   setStats(page.tabs[page.currentTab]);
