@@ -12,7 +12,7 @@
   ],
 
   "background": {
-    "scripts": ["manage-tabs.js", "http-communication.js", "database.js", "webrequests.js"]
+    "scripts": ["manage-tabs.js", "http-communication.js", "database.js", "webrequests.js", "psl.min.js"]
   },
 
   "content_scripts": [

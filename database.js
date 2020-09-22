@@ -12,7 +12,7 @@ request.onsuccess = function(event) {
 
 // database is constructed here
 request.onupgradeneeded = function(event) {
-    console.log("database upgraded");
+    console.info("database upgraded");
     var db = event.target.result;
 
     db.deleteObjectStore("cookies");
@@ -44,7 +44,8 @@ request.onupgradeneeded = function(event) {
                             let words = cookieData.split(" ");
                             let cookie = { url: getSecLevelDomain(words[0]), key: words[1] };
                             cookieObjectStore.add(cookie);
-                        })});
+                        })
+                    });
             })
     }
 };

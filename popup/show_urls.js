@@ -29,28 +29,40 @@ function hideElement(element) {
 
 // currently static
 function setStats(tab){
-  document.getElementById("requests").innerHTML = tab.requests.length.toString();
-  document.getElementById("third").innerHTML = document.getElementsByClassName("third").length.toString();
-  let send = 0;
-  tab.requests.forEach((request) => {
-    send += request.cookies.length;
-  })
-  document.getElementById("cookies-send").innerHTML = send.toString();
-  let set = 0;
-  tab.responses.forEach((response) => {
-    set += response.cookies.length;
-  })
-  document.getElementById("cookies-set").innerHTML = set.toString();
+  try{
+    document.getElementById("requests").innerHTML = tab.requests.length.toString();
+    document.getElementById("third").innerHTML = document.getElementsByClassName("third").length.toString();
 
+    let send = 0;
+    tab.requests.forEach((request) => {
+      send += request.cookies.length;
+    })
+    document.getElementById("cookies-send").innerHTML = send.toString();
+    let set = 0;
+    tab.responses.forEach((response) => {
+      set += response.cookies.length;
+    })
+    document.getElementById("cookies-set").innerHTML = set.toString();
+  } catch (e) {
+    console.warn(e);
+  }
 }
+
+function constructPage() {
 // when popup is opened, the data is fetched form the background script and inserted into the html
-var getting = browser.runtime.getBackgroundPage();
-getting.then((page) => {
-  document.getElementById("current-page").innerHTML = "Page: " + page.tabs[page.currentTab].domain;
-  page.tabs[page.currentTab].requests.forEach((request) => { // error if Tab not initilized
+  document.getElementById("current-page").innerHTML = "Page: " + backgroundPage.tabs[backgroundPage.currentTab].domain;
+  document.getElementById("urls").innerHTML = "";
+  backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
     insertUrl(request.url, request.domain, request.party);
   });
-  setStats(page.tabs[page.currentTab]);
+  setStats(backgroundPage.tabs[backgroundPage.currentTab]);
+}
+
+var getting = browser.runtime.getBackgroundPage();
+var backgroundPage;
+getting.then((page) => {
+  backgroundPage = page;
+  constructPage();
 });
 
 
@@ -66,6 +78,15 @@ document.getElementById("all").addEventListener("click", function(){
   toggleMode();
 });
 
-browser.runtime.onMessage.addListener((message) => {
-  insertUrl(message.request.url, message.request.domain, message.request.party);
-});
+function evaluateMessage() {
+  return (message) => {
+    if (message.request) {
+      insertUrl(message.request.url, message.request.domain, message.request.party);
+      setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
+    } else if (message.reload) {
+      constructPage();
+    }
+  };
+}
+
+browser.runtime.onMessage.addListener(evaluateMessage());
