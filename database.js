@@ -44,7 +44,8 @@ request.onupgradeneeded = function(event) {
                             let words = cookieData.split(" ");
                             let cookie = { url: getSecLevelDomain(words[0]), key: words[1] };
                             cookieObjectStore.add(cookie);
-                        })});
+                        })
+                    });
             })
     }
 };

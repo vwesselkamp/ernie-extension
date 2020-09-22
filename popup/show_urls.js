@@ -43,15 +43,21 @@ function setStats(tab){
   document.getElementById("cookies-set").innerHTML = set.toString();
 
 }
+
+function constructPage() {
 // when popup is opened, the data is fetched form the background script and inserted into the html
-var getting = browser.runtime.getBackgroundPage();
-getting.then((page) => {
-  document.getElementById("current-page").innerHTML = "Page: " + page.tabs[page.currentTab].domain;
-  page.tabs[page.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
-    insertUrl(request.url, request.domain, request.party);
+  var getting = browser.runtime.getBackgroundPage();
+  getting.then((page) => {
+    document.getElementById("current-page").innerHTML = "Page: " + page.tabs[page.currentTab].domain;
+    document.getElementById("urls").innerHTML = "";
+    page.tabs[page.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
+      insertUrl(request.url, request.domain, request.party);
+    });
+    setStats(page.tabs[page.currentTab]);
   });
-  setStats(page.tabs[page.currentTab]);
-});
+}
+
+constructPage();
 
 
 document.getElementById("thirdParty_button").addEventListener("click", function(){
@@ -66,6 +72,15 @@ document.getElementById("all").addEventListener("click", function(){
   toggleMode();
 });
 
-browser.runtime.onMessage.addListener((message) => {
-  insertUrl(message.request.url, message.request.domain, message.request.party);
-});
+function evaluateMessage() {
+  return (message) => {
+    if (message.request) {
+      insertUrl(message.request.url, message.request.domain, message.request.party);
+    } else if (message.reload) {
+      console.log("reload")
+      constructPage();
+    }
+  };
+}
+
+browser.runtime.onMessage.addListener(evaluateMessage());

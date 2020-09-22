@@ -104,10 +104,10 @@ class ResponseInfo extends HttpInfo{
     // for responses there can be several header attributes set cookies
     findCookie(attribute){
         if (attribute.name.toLowerCase() === "set-cookie") {
-            let result = headerCookies
+            let result = attribute.value
                 .split(';', 1)
                 .map(v => v.split(/=(.+)/));
-            this.cookies.push(new Cookie(url, result[0][0], result[0][1]));
+            this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
         }
     }
 }
