@@ -1,10 +1,10 @@
 function handleIrregularities(requestDetails) {
     if(tabs[requestDetails.tabId] === undefined){
-        console.log("Undefined tab for request " + requestDetails.url)
+        console.warn("Undefined tab for request " + requestDetails.url)
         return true;
     } else if (requestDetails.originUrl === undefined) { //TODO: when is this the case?
-        console.log("undefined origin info: " + requestDetails.url)
-        console.log("origin " + requestDetails.originUrl + "   document " + requestDetails.documentUrl)
+        console.warn("undefined origin info: " + requestDetails.url)
+        console.warn("origin " + requestDetails.originUrl + "   document " + requestDetails.documentUrl)
         return false;
     }
 }

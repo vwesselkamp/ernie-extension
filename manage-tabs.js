@@ -27,7 +27,7 @@ function initializeAllTabs(tabs) {
 }
 // leaving it here because I don't know when these errors occur yet
 function onError(error) {
-  console.log(`Error: ${error}`);
+  console.error(`Error: ${error}`);
 }
 
 
@@ -50,12 +50,12 @@ function initializeCleanTab(tabId) {
 browser.webNavigation.onBeforeNavigate.addListener(clearTabsData);
 
 function clearTabsData(details){
-  console.log("navigational event on " + details.url + " with frame id " + details.frameId)
+  console.info("navigational event on " + details.url + " with frame id " + details.frameId)
   if(details.frameId !== 0) return;
   setCurrentTab(); // probably unnecessary
 
   tabs[details.tabId] = new TabInfo(details.url);
-  console.log("cleared tab for " + details.url)
+  console.info("cleared tab for " + details.url)
 }
 
 

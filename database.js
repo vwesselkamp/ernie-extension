@@ -12,7 +12,7 @@ request.onsuccess = function(event) {
 
 // database is constructed here
 request.onupgradeneeded = function(event) {
-    console.log("database upgraded");
+    console.info("database upgraded");
     var db = event.target.result;
 
     db.deleteObjectStore("cookies");
