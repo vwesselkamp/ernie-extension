@@ -55,7 +55,7 @@ getting.then((page) => {
 
 
 document.getElementById("thirdParty_button").addEventListener("click", function(){
-  document.getElementById("popup-title").innerHTML = "Third Party Requests";
+  document.getElementById("popup-title").innerHTML = "3rd Party Requests";
   thirdParty_mode = true;
   toggleMode()
 });
