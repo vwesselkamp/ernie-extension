@@ -62,17 +62,14 @@ class RequestInfo extends HttpInfo{
             request: request
         });
 
-        // catching the error when the popup is not open to receive messages and just dropping it
-        function handleError(error) {
-            if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                return;
-            }
-            console.error(`Error: ${error}`);
-        }
-
-        function handleResponse() {}
-
-        sending.then(handleResponse, handleError);
+        sending
+            .then()
+            .catch(function (error) {
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                console.error(`Error: ${error}`);
+            });
     }
 
     //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned

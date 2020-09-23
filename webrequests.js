@@ -3,8 +3,9 @@ function handleIrregularities(requestDetails) {
         console.warn("Undefined tab for request " + requestDetails.url)
         return true;
     } else if (requestDetails.originUrl === undefined) { //TODO: when is this the case?
-        console.warn("undefined origin info: " + requestDetails.url)
+        console.group("undefined origin info: " + requestDetails.url)
         console.warn("origin " + requestDetails.originUrl + "   document " + requestDetails.documentUrl)
+        console.groupEnd();
         return false;
     }
 }
