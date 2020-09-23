@@ -1,6 +1,7 @@
 var currentTab;
 // stores all tabs by their tabId as index
 var tabs = [];
+let lastNavigation = 0;
 
 /*
 Class to keep track ov everything happening in a tab, until a new link is clicked or the site is refreshed
@@ -54,7 +55,17 @@ function clearTabsData(details){
     console.info("navigational event on " + details.url + " with frame id " + details.frameId)
     return;
   }
-  setCurrentTab(); // probably unnecessary
+  // second onBeforeNavigate event is triggered on some websites after the first request is made
+  // this doesn't happen to onCommited, however onCommited is to late, and misses the first request.
+  // the check here is if to navigationalEvents happen really close to each other, then the second is probably irrelevant
+  if (details.timeStamp - lastNavigation < 1000) {
+    console.info("second navigational event to " + details.url);
+    return;
+  }
+
+  lastNavigation = details.timeStamp;
+
+  // setCurrentTab(); // probably unnecessary
 
   tabs[details.tabId] = new TabInfo(details.url);
   console.info("cleared tab for " + details.url);
