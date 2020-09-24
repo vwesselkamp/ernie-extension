@@ -18,16 +18,12 @@ function getActiveTab() {
   return browser.tabs.query({active: true, currentWindow: true});
 }
 
-function setCurrentTab() { // activeInfo also contains tabId
-  getActiveTab().then((tabs) => {
-    currentTab = tabs[0].id;
-  });
+async function setCurrentTab() { // activeInfo also contains tabId
+  currentTab = (await getActiveTab())[0].id;
 }
 
-setCurrentTab();
-
-
-browser.tabs.query({})
+setCurrentTab()
+    .then(() => browser.tabs.query({}))
     .then(tabs =>{
       for (let tab of tabs) {
         initializeCleanTab(tab.id);
@@ -92,4 +88,7 @@ function clearTabsData(details){
 
 
 // update current tab when the tab is activated
+// doesn"t react if window is changed
 browser.tabs.onActivated.addListener(setCurrentTab);
+
+browser.windows.onFocusChanged.addListener(setCurrentTab);

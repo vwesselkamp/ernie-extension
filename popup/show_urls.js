@@ -60,9 +60,9 @@ function constructPage() {
 
 var getting = browser.runtime.getBackgroundPage();
 var backgroundPage;
-getting.then((page) => {
+getting.then(async (page) => {
   backgroundPage = page;
-  constructPage();
+  backgroundPage.setCurrentTab().then(constructPage);
 });
 
 
