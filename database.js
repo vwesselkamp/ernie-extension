@@ -42,7 +42,7 @@ request.onupgradeneeded = function(event) {
                     if(cookieData === "") return;
 
                     let words = cookieData.split(" ");
-                    let cookie = { url: getSecLevelDomain(words[0]), key: words[1] };
+                    let cookie = { url: getSecondLevelDomainFromDomain(words[0]), key: words[1] };
                     cookieObjectStore.add(cookie);
                 })
             });

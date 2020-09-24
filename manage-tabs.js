@@ -7,7 +7,7 @@ Class to keep track ov everything happening in a tab, until a new link is clicke
  */
 class TabInfo {
   constructor(url) {
-    this.domain = getSecLevelDomain(url)
+    this.domain = getSecondLevelDomainFromUrl(url)
     this.requests = [];
     this.responses = [];
   }
