@@ -1,7 +1,10 @@
-function getSecLevelDomain(tabUrl){
+function getSecondLevelDomainFromDomain(url) {
+    return psl.get(url.hostname); // look at a public suffix list and finds domains such as amazon.co.ukA
+}
+
+function getSecondLevelDomainFromUrl(tabUrl){
     var url = new URL(tabUrl);
-    url = psl.get(url.hostname); // look at a public suffix list and finds domains such as amazon.co.ukA
-    return url;
+    return getSecondLevelDomainFromDomain(url);
 }
 
 /*
@@ -12,7 +15,7 @@ class HttpInfo{
     constructor(webRequest) {
         this.url = webRequest.url;
         this.tabId = webRequest.tabId;
-        this.domain = getSecLevelDomain(webRequest.url);
+        this.domain = getSecondLevelDomainFromUrl(webRequest.url);
         this.party = this.checkIfThirdParty(); // move this function into the object?
         this.cookies = [];
     }
@@ -62,17 +65,14 @@ class RequestInfo extends HttpInfo{
             request: request
         });
 
-        // catching the error when the popup is not open to receive messages and just dropping it
-        function handleError(error) {
-            if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                return;
-            }
-            console.error(`Error: ${error}`);
-        }
-
-        function handleResponse() {}
-
-        sending.then(handleResponse, handleError);
+        sending
+            .then()
+            .catch(function (error) {
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                console.error(`Error: ${error}`);
+            });
     }
 
     //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
@@ -126,7 +126,7 @@ class Cookie{
 
         // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
         let cookie = this;
-        var indexRange = IDBKeyRange.only(getSecLevelDomain(this.url));
+        var indexRange = IDBKeyRange.only(getSecondLevelDomainFromUrl(this.url));
         cookieIndex.openCursor(indexRange).onsuccess = function(event) {
             var cursor = event.target.result;
             if (cursor) {

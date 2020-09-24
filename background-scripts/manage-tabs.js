@@ -7,29 +7,28 @@ Class to keep track ov everything happening in a tab, until a new link is clicke
  */
 class TabInfo {
   constructor(url) {
-    this.domain = getSecLevelDomain(url)
+    this.domain = getSecondLevelDomainFromUrl(url)
     this.requests = [];
     this.responses = [];
   }
 }
 
-
-setCurrentTab();
-
-
-let querying = browser.tabs.query({});
-querying.then(initializeAllTabs, onError);
-
-function initializeAllTabs(tabs) {
-  for (let tab of tabs) {
-    initializeCleanTab(tab.id);
-  }
-}
-// leaving it here because I don't know when these errors occur yet
-function onError(error) {
-  console.error(`Error: ${error}`);
+function getActiveTab() {
+  return browser.tabs.query({active: true, currentWindow: true});
 }
 
+async function setCurrentTab() { // activeInfo also contains tabId
+  currentTab = (await getActiveTab())[0].id;
+}
+
+setCurrentTab()
+    .then(() => browser.tabs.query({}))
+    .then(tabs =>{
+      for (let tab of tabs) {
+        initializeCleanTab(tab.id);
+      }
+    })
+    .catch(error => console.error(error))
 
 browser.tabs.onCreated.addListener((tab) => {
   initializeCleanTab(tab.id);
@@ -41,9 +40,10 @@ function initializeCleanTab(tabId) {
   if( tabId === -1 ) {
     return;
   }
-  browser.tabs.get(tabId).then((tab) => {
-    tabs[tabId] = new TabInfo(tab.url);
-  })
+  browser.tabs.get(tabId)
+      .then((tab) => {
+        tabs[tabId] = new TabInfo(tab.url);
+      }).catch(error => console.error(error))
 }
 
 
@@ -61,34 +61,23 @@ function clearTabsData(details){
   notifyPopupOfReload();
 
   function notifyPopupOfReload() {
-    var sending = browser.runtime.sendMessage({
+    browser.runtime.sendMessage({
       reload: true
-    });
-
-    // catching the error when the popup is not open to receive messages and just dropping it
-    function handleError(error) {
-      if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-        return;
-      }
-      console.error(`Error: ${error}`);
-    }
-
-    function handleResponse() {}
-
-    sending.then(handleResponse, handleError);
+    })
+        .then()
+        // catching the error when the popup is not open to receive messages and just dropping it
+        .catch(function (error) {
+          if (error.toString().includes("Could not establish connection. Receiving end does not exist.")) {
+            return;
+          }
+          console.error(`Error: ${error}`);
+        });
   }
 }
 
 
 // update current tab when the tab is activated
+// doesn"t react if window is changed
 browser.tabs.onActivated.addListener(setCurrentTab);
 
-function setCurrentTab() { // activeInfo also contains tabId
-  getActiveTab().then((tabs) => {
-    currentTab = tabs[0].id;
-  });
-}
-
-function getActiveTab() {
-  return browser.tabs.query({active: true, currentWindow: true});
-}
+browser.windows.onFocusChanged.addListener(setCurrentTab);

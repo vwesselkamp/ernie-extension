@@ -60,9 +60,9 @@ function constructPage() {
 
 var getting = browser.runtime.getBackgroundPage();
 var backgroundPage;
-getting.then((page) => {
+getting.then(async (page) => {
   backgroundPage = page;
-  constructPage();
+  backgroundPage.setCurrentTab().then(constructPage);
 });
 
 
@@ -78,15 +78,13 @@ document.getElementById("all").addEventListener("click", function(){
   toggleMode();
 });
 
-function evaluateMessage() {
-  return (message) => {
-    if (message.request) {
-      insertUrl(message.request.url, message.request.domain, message.request.party);
-      setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
-    } else if (message.reload) {
-      constructPage();
-    }
-  };
+function evaluateMessage(message) {
+  if (message.request) {
+    insertUrl(message.request.url, message.request.domain, message.request.party);
+    setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
+  } else if (message.reload) {
+    constructPage();
+  }
 }
 
-browser.runtime.onMessage.addListener(evaluateMessage());
+browser.runtime.onMessage.addListener(evaluateMessage);

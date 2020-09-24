@@ -42,19 +42,19 @@ request.onupgradeneeded = function(event) {
     function parseCookieFile(){
         fetch('safe.txt')
             .then(response => {
-                let text = response.text()
-                    .then(text => {
-                        let lines = text.split("\n");
-                        lines.shift(); //remove title with URL ... Key
-                        var cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
-                        lines.forEach((cookieData) => {
-                            if(cookieData === "") return;
+                return response.text()
+            }).then(text => {
+                let lines = text.split("\n");
+                lines.shift(); //remove title with URL ... Key
+                var cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+                lines.forEach((cookieData) => {
+                    if(cookieData === "") return;
 
-                            let words = cookieData.split(" ");
-                            let cookie = { url: getSecLevelDomain(words[0]), key: words[1] };
-                            cookieObjectStore.add(cookie);
-                        })
-                    });
-            })
+                    let words = cookieData.split(" ");
+                    let cookie = { url: getSecondLevelDomainFromDomain(words[0]), key: words[1] };
+                    cookieObjectStore.add(cookie);
+                })
+            });
+
     }
 };
