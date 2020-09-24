@@ -1,7 +1,7 @@
 var db;
 
 // the version determines if the database is reinitaliyzed or updated
-var request = indexedDB.open("extension-db", 5);
+var request = indexedDB.open("extension-db", 3);
 
 request.onerror = function(event) {
     console.log("error: database could not be initialized"); // if occurs
@@ -15,9 +15,18 @@ request.onupgradeneeded = function(event) {
     console.info("database upgraded");
     var db = event.target.result;
 
-    db.deleteObjectStore("cookies");
     // objectstore with autoincrementing key as we dont have a natural primary key for the cookies
-    var objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
+    var objectStore;
+    try{
+        objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
+    } catch (e) {
+        // if it already exists
+        // when updating the schema it actually does have to be deleted, it says so in the docs
+        console.warn(e);
+        db.deleteObjectStore("cookies");
+        objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
+        console.warn("Reinitialized object store cookies.")
+    }
 
     // Create an index to search cookies by url. We may have duplicates
     // so we can't use a unique index.
