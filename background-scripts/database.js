@@ -12,21 +12,48 @@ request.onsuccess = function(event) {
 
 // database is constructed here
 request.onupgradeneeded = function(event) {
-    console.info("database upgraded");
-    var db = event.target.result;
-
-    // objectstore with autoincrementing key as we dont have a natural primary key for the cookies
-    var objectStore;
-    try{
-        objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
-    } catch (e) {
-        // if it already exists
-        // when updating the schema it actually does have to be deleted, it says so in the docs
-        console.warn(e);
-        db.deleteObjectStore("cookies");
-        objectStore = db.createObjectStore("cookies", { autoIncrement: "true" });
-        console.warn("Reinitialized object store cookies.")
+    function initializeObjectStore() {
+        try {
+            // objectstore with autoincrementing key as we dont have a natural primary key for the cookies
+            return db.createObjectStore("cookies", {autoIncrement: "true"});
+        } catch (e) {
+            // if it already exists
+            // when updating the schema it actually does have to be deleted, it says so in the docs
+            console.warn(e);
+            db.deleteObjectStore("cookies");
+            console.warn("Reinitializing object store cookies.")
+            return db.createObjectStore("cookies", {autoIncrement: "true"});
+        }
     }
+
+    function readCookiesIntoDB(text) {
+        let lines = text.split("\n");
+        lines.shift(); //remove title with URL ... Key
+        // TODO: transaction lifetime is bit complicated, so find out how to keep cookieStore from outer scope alive
+        // to use it here
+        let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+        lines.forEach((cookieData) => {
+            if (cookieData === "") return;
+
+            let words = cookieData.split(" ");
+            let cookie = {url: getSecondLevelDomainFromDomain(words[0]), key: words[1]};
+            cookieObjectStore.add(cookie);
+        })
+    }
+
+    function parseCookieFile(){
+        fetch('safe.txt')
+            .then(response => {
+                return response.text()
+            })
+            .then(readCookiesIntoDB);
+
+    }
+
+    console.info("Database upgraded");
+    db = event.target.result;
+
+    var objectStore = initializeObjectStore();
 
     // Create an index to search cookies by url. We may have duplicates
     // so we can't use a unique index.
@@ -34,27 +61,5 @@ request.onupgradeneeded = function(event) {
 
     // Use transaction oncomplete to make sure the objectStore creation is
     // finished before adding data into it.
-    objectStore.transaction.oncomplete = function(event) {
-        // Store values in the newly created objectStore.
-        parseCookieFile();
-    };
-
-    function parseCookieFile(){
-        fetch('safe.txt')
-            .then(response => {
-                return response.text()
-            }).then(text => {
-                let lines = text.split("\n");
-                lines.shift(); //remove title with URL ... Key
-                var cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
-                lines.forEach((cookieData) => {
-                    if(cookieData === "") return;
-
-                    let words = cookieData.split(" ");
-                    let cookie = { url: getSecondLevelDomainFromDomain(words[0]), key: words[1] };
-                    cookieObjectStore.add(cookie);
-                })
-            });
-
-    }
+    objectStore.transaction.oncomplete = parseCookieFile
 };
