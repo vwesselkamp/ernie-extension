@@ -78,3 +78,7 @@ html, body {
 .third {
   font-weight: bold;
 }
+
+.tracking {
+  color: darkred;
+}

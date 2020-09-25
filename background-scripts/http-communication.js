@@ -49,7 +49,7 @@ class RequestInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.requestHeaders;
-
+        this.self = this;
         this.extractFromHeader(this.header);
     }
 
@@ -88,6 +88,20 @@ class RequestInfo extends HttpInfo{
         }
     }
 
+    //TODO: fix the this issue
+    assignCategory() {
+        const localFilter = this.filterIdCookies.bind(this);
+        if(this.party === "third" && localFilter().length > 0){
+            this.category = Categories.BASICTRACKING;
+        }
+    }
+
+    filterIdCookies() {
+        return this.cookies.filter(function (cookie) {
+            return cookie.identifying === true;
+        });
+    }
+
 }
 
 class ResponseInfo extends HttpInfo{
@@ -118,6 +132,7 @@ class Cookie{
         this.url = url;
         this.key = key;
         this.value = value;
+        this.identifying = true;
         this.checkIfIdCookie();
     }
 
