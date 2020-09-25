@@ -91,7 +91,8 @@ class RequestInfo extends HttpInfo{
                 .split(';')
                 .map(v => v.split(/=(.+)/)); // TODO: returns emptz string as third parameter for some reason
             result.forEach((cookie) => {
-                this.cookies.push(new Cookie(this.url, cookie[0], cookie[1]));
+                //TODO: brutally trimming all spaces here because the regex returns them with a space in the front
+                this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1]));
             });
         }
     }
@@ -157,8 +158,6 @@ class Cookie{
                     console.info("Found safe cookie for " + cookie.url + ": " + cookie.key);
                 }
                 cursor.continue();
-            } else {
-                cookie.identifying = true;
             }
         };
     }
