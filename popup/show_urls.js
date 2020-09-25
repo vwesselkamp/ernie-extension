@@ -2,8 +2,25 @@ var thirdParty_mode = false;
 
 
 function insertUrl(request) {
-  let node = document.createElement("LI");
-  node.appendChild(document.createTextNode(request.domain + " : " + request.url));
+  let node;
+
+  if (request.cookies.filter(cookie => cookie.identifying === true).length > 0) {
+    node = document.createElement("details");
+    let summary = document.createElement("summary");
+    summary.innerText = request.domain + " : " + request.url;
+    node.appendChild(summary)
+    for (let i in request.cookies){
+      if(request.cookies[i].identifying){
+        let cookie = document.createElement("div");
+        cookie.innerText = request.cookies[i].key;
+        node.appendChild(cookie);
+      }
+    }
+  } else {
+    node = document.createElement("div");
+    node.innerText = request.domain + " : " + request.url;
+  }
+
   node.className = request.category + " " + request.party + " url";
   if(request.party === "first") {
     hideElement(node);

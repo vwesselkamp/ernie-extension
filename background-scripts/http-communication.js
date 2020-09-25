@@ -7,7 +7,7 @@ function getSecondLevelDomainFromUrl(tabUrl){
     return getSecondLevelDomainFromDomain(url);
 }
 
-const Categories = Object.freeze({
+var Categories = Object.freeze({
     "BASICTRACKING":"tracking",
     "TRACKINGBYTRACKER":"trackbytrack",
     "NONE":"nothing"})
@@ -109,7 +109,6 @@ class RequestInfo extends HttpInfo{
             return cookie.identifying === true;
         });
     }
-
 }
 
 class ResponseInfo extends HttpInfo{
