@@ -1,11 +1,11 @@
 var thirdParty_mode = false;
 
 
-function insertUrl(url, domain, party) {
+function insertUrl(request) {
   let node = document.createElement("LI");
-  node.appendChild(document.createTextNode(domain + " : " + url));
-  node.className = party + " url";
-  if(party === "first") {
+  node.appendChild(document.createTextNode(request.domain + " : " + request.url));
+  node.className = request.category + " " + request.party + " url";
+  if(request.party === "first") {
     hideElement(node);
   }
   document.getElementById("urls").appendChild(node);
@@ -53,7 +53,7 @@ function constructPage() {
   document.getElementById("current-page").innerHTML = "Page: " + backgroundPage.tabs[backgroundPage.currentTab].domain;
   document.getElementById("urls").innerHTML = "";
   backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
-    insertUrl(request.url, request.domain, request.party);
+    insertUrl(request);
   });
   setStats(backgroundPage.tabs[backgroundPage.currentTab]);
 }
@@ -80,7 +80,7 @@ document.getElementById("all").addEventListener("click", function(){
 
 function evaluateMessage(message) {
   if (message.request) {
-    insertUrl(message.request.url, message.request.domain, message.request.party);
+    insertUrl(message.request);
     setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
   } else if (message.reload) {
     constructPage();

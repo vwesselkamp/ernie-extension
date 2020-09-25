@@ -7,6 +7,12 @@ function getSecondLevelDomainFromUrl(tabUrl){
     return getSecondLevelDomainFromDomain(url);
 }
 
+const Categories = Object.freeze({
+    "BASICTRACKING":"tracking",
+    "TRACKINGBYTRACKER":"trackbytrack",
+    "NONE":"nothing"})
+
+
 /*
   Superclass of all HTTP communication
  */
@@ -18,6 +24,7 @@ class HttpInfo{
         this.domain = getSecondLevelDomainFromUrl(webRequest.url);
         this.party = this.checkIfThirdParty(); // move this function into the object?
         this.cookies = [];
+        this.category = Categories.NONE;
     }
 
     checkIfThirdParty(){
@@ -51,6 +58,7 @@ class RequestInfo extends HttpInfo{
         this.header = webRequest.requestHeaders;
         this.self = this;
         this.extractFromHeader(this.header);
+        this.assignCategory();
     }
 
     archive(tabId){
