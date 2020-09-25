@@ -39,6 +39,7 @@ class HttpInfo{
         for (let i in header){
             this.findCookie(header[i]);
             this.findContentType(header[i]);
+            this.findReferer(header[i]);
         }
         return this.checkForSafeCookies()
     }
@@ -71,6 +72,13 @@ class HttpInfo{
             };
             idbRequest.onerror = event=> reject(event)
         })
+    }
+
+    findReferer(attribute) {
+        if (attribute.name.toLowerCase() === "referer"){
+            this.referer = getSecondLevelDomainFromUrl(attribute.value);
+            console.log(this.referer);
+        }
     }
 }
 

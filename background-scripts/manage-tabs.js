@@ -10,9 +10,28 @@ class TabInfo {
     this.domain = getSecondLevelDomainFromUrl(url)
     this.requests = [];
     this.responses = [];
+    this.domains = [];
+  }
+
+  updateDomain(name){
+      for(let i in this.domains){
+          if(this.domains[i].name == name) {
+              return this.domains[i];
+          }
+      }
+      let domain = new Domain(name);
+      this.domains.push(domain);
+      return domain;
   }
 }
 
+class Domain {
+    constructor(domain) {
+        this.name = domain;
+        this.requests = [];
+        this.responses = [];
+    }
+}
 function getActiveTab() {
   return browser.tabs.query({active: true, currentWindow: true});
 }
