@@ -35,42 +35,17 @@ class HttpInfo{
 
     }
 
-    async extractFromHeader(header) {
-        for (let i in header){
-            this.findCookie(header[i]);
-            this.findContentType(header[i]);
-        }
-        return this.checkForSafeCookies()
+    extractFromHeader(header) {
+        header.forEach((attribute) => {
+            this.findCookie(attribute);
+            this.findContentType(attribute);
+        })
     }
 
     findContentType(attribute){
         if (attribute.name.toLowerCase() === "content-type"){
             this.contentType = attribute.value;
         }
-    }
-
-    checkForSafeCookies(){
-        let request = this;
-        var cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("url");
-
-        // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
-        var indexRange = IDBKeyRange.only(getSecondLevelDomainFromUrl(this.url));
-        return new Promise((resolve, reject) => {
-            let idbRequest = cookieIndex.openCursor(indexRange)
-            idbRequest.onsuccess = function(event) {
-                var cursor = event.target.result;
-                if (cursor) {
-                    for (let i in request.cookies) {
-                        //TODO; fix this with "this" magic
-                        request.cookies[i].checkIfIdCookie(request.cookies[i], cursor.value.key)
-                    }
-                    cursor.continue();
-                } else {
-                    resolve(request.cookies)
-                }
-            };
-            idbRequest.onerror = event=> reject(event)
-        })
     }
 }
 
@@ -81,12 +56,9 @@ class RequestInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.requestHeaders;
-        this.extractFromHeader(this.header)
-            .then(() => {
-                // all cookies are parsed and accessible at this point
-                this.assignCategory();
-                this.archive(this.tabId)
-            })
+        this.self = this;
+        this.extractFromHeader(this.header);
+        this.assignCategory();
     }
 
     archive(tabId){
@@ -118,9 +90,9 @@ class RequestInfo extends HttpInfo{
             let result = attribute.value
                 .split(';')
                 .map(v => v.split(/=(.+)/)); // TODO: returns emptz string as third parameter for some reason
-            for (let i in result) {
-                this.cookies.push(new Cookie(this.url, result[i][0].trim(), result[i][1]));
-            }
+            result.forEach((cookie) => {
+                this.cookies.push(new Cookie(this.url, cookie[0], cookie[1]));
+            });
         }
     }
 
@@ -137,15 +109,14 @@ class RequestInfo extends HttpInfo{
             return cookie.identifying === true;
         });
     }
+
 }
 
 class ResponseInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.responseHeaders;
-        this.extractFromHeader(this.header).then(()=>
-            this.archive(this.tabId)
-        );
+        this.extractFromHeader(this.header);
     }
 
     archive(tabId){
@@ -170,12 +141,26 @@ class Cookie{
         this.key = key;
         this.value = value;
         this.identifying = true;
+        this.checkIfIdCookie();
     }
 
-    checkIfIdCookie(cookie, key){
-        if (key === cookie.key) {
-            cookie.identifying = false;
-            console.info("Found safe cookie for " + cookie.url + ": " + cookie.key);
-        }
+    checkIfIdCookie(){
+        var cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("url");
+
+        // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
+        let cookie = this;
+        var indexRange = IDBKeyRange.only(getSecondLevelDomainFromUrl(this.url));
+        cookieIndex.openCursor(indexRange).onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                if (cursor.value.key === cookie.key) {
+                    cookie.identifying = false;
+                    console.info("Found safe cookie for " + cookie.url + ": " + cookie.key);
+                }
+                cursor.continue();
+            } else {
+                cookie.identifying = true;
+            }
+        };
     }
 }
