@@ -1,7 +1,7 @@
 var db;
 
 // the version determines if the database is reinitaliyzed or updated
-var request = indexedDB.open("extension-db", 5);
+var request = indexedDB.open("extension-db", 10);
 
 request.onerror = function(event) {
     console.log("error: database could not be initialized"); // if occurs

@@ -1,10 +1,10 @@
 function getSecondLevelDomainFromDomain(url) {
-    return psl.get(url.hostname); // look at a public suffix list and finds domains such as amazon.co.ukA
+    return psl.get(url); // look at a public suffix list and finds domains such as amazon.co.ukA
 }
 
 function getSecondLevelDomainFromUrl(tabUrl){
     var url = new URL(tabUrl);
-    return getSecondLevelDomainFromDomain(url);
+    return getSecondLevelDomainFromDomain(url.hostname);
 }
 
 const Categories = Object.freeze({
@@ -148,6 +148,7 @@ class Cookie{
         var cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("url");
 
         // this is not an elegant solution, however i simply dont understand how onsuccess is assigned
+        //TODO: find out if querying could be made more efficient
         let cookie = this;
         var indexRange = IDBKeyRange.only(getSecondLevelDomainFromUrl(this.url));
         cookieIndex.openCursor(indexRange).onsuccess = function(event) {
@@ -158,8 +159,6 @@ class Cookie{
                     console.info("Found safe cookie for " + cookie.url + ": " + cookie.key);
                 }
                 cursor.continue();
-            } else {
-                cookie.identifying = true;
             }
         };
     }
