@@ -4,21 +4,29 @@ var thirdParty_mode = false;
 function insertUrl(request) {
   let node;
 
-  if (request.cookies.filter(cookie => cookie.identifying === true).length > 0) {
+  function listIdentifyingCookies() {
     node = document.createElement("details");
     let summary = document.createElement("summary");
     summary.innerText = request.domain + " : " + request.url;
     node.appendChild(summary)
-    for (let i in request.cookies){
-      if(request.cookies[i].identifying){
+    for (let i in request.cookies) {
+      if (request.cookies[i].identifying) {
         let cookie = document.createElement("div");
         cookie.innerText = request.cookies[i].key;
         node.appendChild(cookie);
       }
     }
-  } else {
+  }
+
+  function listOnlyUrl() {
     node = document.createElement("div");
     node.innerText = request.domain + " : " + request.url;
+  }
+
+  if (request.cookies.filter(cookie => cookie.identifying === true).length > 0) {
+    listIdentifyingCookies();
+  } else {
+    listOnlyUrl();
   }
 
   node.className = request.category + " " + request.party + " url";
