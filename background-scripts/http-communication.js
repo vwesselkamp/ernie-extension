@@ -1,10 +1,10 @@
 function getSecondLevelDomainFromDomain(url) {
-    return psl.get(url.hostname); // look at a public suffix list and finds domains such as amazon.co.ukA
+    return psl.get(url); // look at a public suffix list and finds domains such as amazon.co.ukA
 }
 
 function getSecondLevelDomainFromUrl(tabUrl){
     var url = new URL(tabUrl);
-    return getSecondLevelDomainFromDomain(url);
+    return getSecondLevelDomainFromDomain(url.hostname);
 }
 
 var Categories = Object.freeze({
