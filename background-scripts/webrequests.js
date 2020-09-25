@@ -13,13 +13,11 @@ function handleIrregularities(requestDetails) {
 function logRequest(requestDetails) {
     if(handleIrregularities(requestDetails)) { return };
     let request = new RequestInfo(requestDetails);
-    request.archive(requestDetails.tabId);
 }
 
 function logResponse(responseDetails) {
     if(handleIrregularities(responseDetails)) { return };
     let response = new ResponseInfo(responseDetails);
-    response.archive(responseDetails.tabId);
 }
 
 browser.webRequest.onSendHeaders.addListener(
