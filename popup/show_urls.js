@@ -76,7 +76,11 @@ function setStats(tab){
 
 function constructPage() {
 // when popup is opened, the data is fetched form the background script and inserted into the html
-  document.getElementById("current-page").innerHTML = "Page: " + backgroundPage.tabs[backgroundPage.currentTab].domain;
+  let page = backgroundPage.tabs[backgroundPage.currentTab].domain
+  if(page == null){
+    page = "Currently not a web page"
+  }
+  document.getElementById("current-page").innerHTML = "Page: " + page
   document.getElementById("urls").innerHTML = "";
   document.getElementById("response-urls").innerHTML = "";
 
