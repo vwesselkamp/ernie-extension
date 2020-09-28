@@ -115,7 +115,7 @@ function evaluateMessage(message) {
     setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
   } else if (message.response) {
     insertResponse(message.response)
-    setStats(backgroundPage.tabs[message.request.tabId]);
+    setStats(backgroundPage.tabs[message.response.tabId]);
   } else if (message.reload) {
     constructPage();
   }
