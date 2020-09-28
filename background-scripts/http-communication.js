@@ -111,14 +111,14 @@ class HttpInfo{
         if (this.referer) {
             // TODO: refactor this into something with a consistent order
             if (tabs[this.tabId].signalizeTracker(this.referer)) {
-                console.log("Referer " + this.referer + " of " + this.url + " is tracker")
+                console.info("Referer " + this.referer + " of " + this.url + " is tracker")
                 if (this.category === Categories.BASICTRACKING && this.domain !== this.referer) {
-                    console.log("found new trackbytrack " + this.url)
+                    console.info("found new trackbytrack " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }
             }
         } else {
-            console.log("No referer found for " + this.url)
+            console.info("No referer found for " + this.url)
         }
     }
 
@@ -226,14 +226,14 @@ class ResponseInfo extends HttpInfo{
         if (request.referer) {
             // TODO: refactor this into something with a consistent order
             if (tabs[this.tabId].signalizeTracker(request.referer)) {
-                console.log("Referer " + request.referer + " of corresponding request to " + this.url + " is tracker")
+                console.info("Referer " + request.referer + " of corresponding request to " + this.url + " is tracker")
                 if (this.category === Categories.BASICTRACKING && this.domain !== request.referer) {
-                    console.log("Tracking initiated by a tracker: " + this.url)
+                    console.info("Tracking initiated by a tracker: " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }
             }
         } else {
-            console.log("No referer found for " + this.url)
+            console.info("No referer found for " + this.url)
         }
     }
 }
