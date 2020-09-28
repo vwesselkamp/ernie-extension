@@ -79,6 +79,34 @@ class HttpInfo{
             this.referer = getSecondLevelDomainFromUrl(attribute.value);
         }
     }
+
+    //TODO: fix the this issue
+    assignCategory() {
+        const localFilter = this.filterIdCookies.bind(this);
+        if(this.party === "third" && localFilter().length > 0){
+            this.category = Categories.BASICTRACKING;
+        }
+        // the referers domain has tracked on this website before
+        // and the request itself is tracking
+        if(this.referer){
+            // TODO: refactor this into something with a consistent order
+            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)){
+                console.log("Referer " + this.referer +" of " + this.url + " is tracker")
+                if(this.category === Categories.BASICTRACKING && this.domain !== this.referer){
+                    console.log("found new trackbytrack " + this.url)
+                    this.category = Categories.TRACKINGBYTRACKER
+                }
+            }
+        } else if (this instanceof RequestInfo){
+            console.log("No referer found for " + this.url)
+        }
+    }
+
+    filterIdCookies() {
+        return this.cookies.filter(function (cookie) {
+            return cookie.identifying === true;
+        });
+    }
 }
 
 /*
@@ -134,43 +162,16 @@ class RequestInfo extends HttpInfo{
             }
         }
     }
-
-    //TODO: fix the this issue
-    assignCategory() {
-        const localFilter = this.filterIdCookies.bind(this);
-        if(this.party === "third" && localFilter().length > 0){
-            this.category = Categories.BASICTRACKING;
-        }
-        // the referers domain has tracked on this website before
-        // and the request itself is tracking
-        if(this.referer){
-            // TODO: refactor this into something with a consistent order
-            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)){
-                console.log("Referer " + this.referer +" of " + this.url + " is tracker")
-                if(this.category === Categories.BASICTRACKING && this.domain !== this.referer){
-                    console.log("found new trackbytrack " + this.url)
-                    this.category = Categories.TRACKINGBYTRACKER
-                }
-            }
-        } else{
-            console.log("No referer found for " + this.url)
-        }
-    }
-
-    filterIdCookies() {
-        return this.cookies.filter(function (cookie) {
-            return cookie.identifying === true;
-        });
-    }
 }
 
 class ResponseInfo extends HttpInfo{
     constructor(webRequest) {
         super(webRequest);
         this.header = webRequest.responseHeaders;
-        this.extractFromHeader(this.header).then(()=>
-            this.archive(this.tabId)
-        );
+        this.extractFromHeader(this.header).then(()=> {
+            this.assignCategory();
+            this.archive(this.tabId);
+        });
     }
 
     archive(tabId){
