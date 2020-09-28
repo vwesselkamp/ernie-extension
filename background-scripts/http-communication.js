@@ -147,8 +147,7 @@ class RequestInfo extends HttpInfo{
             // TODO: refactor this into something with a consistent order
             if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)){
                 console.log("Referer " + this.referer +" of " + this.url + " is tracker")
-                console.log(this.category)
-                if(this.category === Categories.BASICTRACKING){ //&& this.domain !== this.referer){
+                if(this.category === Categories.BASICTRACKING && this.domain !== this.referer){
                     console.log("found new trackbytrack " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }

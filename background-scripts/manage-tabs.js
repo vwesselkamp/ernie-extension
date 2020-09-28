@@ -36,7 +36,7 @@ class TabInfo {
   signalizeTracker(domainName) {
       let domain = this.domains.find(domain => domain.name === domainName);
       if(!domain){
-          console.warn("Domain does not exists: " + domainName)
+          console.warn("Domain not yet initialized: " + domainName)
           return;
       }
       return domain.tracker;
