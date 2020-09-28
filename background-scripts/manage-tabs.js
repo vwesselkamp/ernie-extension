@@ -14,22 +14,51 @@ class TabInfo {
   }
 
   updateDomain(name){
-      for(let i in this.domains){
-          if(this.domains[i].name == name) {
-              return this.domains[i];
-          }
+      let domain = this.domains.find(domain => domain.name === name);
+      if(domain){
+          return domain;
       }
-      let domain = new Domain(name);
+      domain = new Domain(name);
       this.domains.push(domain);
       return domain;
   }
+
+  pushWebRequest(request){
+      let domain = this.updateDomain(request.domain);
+      domain.archive(request);
+  }
+
+  setTracker(domainName){
+      let domain = this.updateDomain(domainName)
+      domain.tracker = true;
+  }
+
+  signalizeTracker(domainName) {
+      let domain = this.domains.find(domain => domain.name === domainName);
+      if(!domain){
+          console.warn("Domain does not exists: " + domainName)
+          return;
+      }
+      return domain.tracker;
+  }
+
 }
 
 class Domain {
     constructor(domain) {
         this.name = domain;
+        this.tracker = false;
         this.requests = [];
         this.responses = [];
+        console.info("Initialized domain " + this.name)
+    }
+
+    archive(request){
+        if(request instanceof RequestInfo){
+            this.requests.push(request);
+        } else if (request instanceof ResponseInfo){
+            this.responses.push(request);
+        }
     }
 }
 function getActiveTab() {

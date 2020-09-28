@@ -77,7 +77,6 @@ class HttpInfo{
     findReferer(attribute) {
         if (attribute.name.toLowerCase() === "referer"){
             this.referer = getSecondLevelDomainFromUrl(attribute.value);
-            console.log(this.referer);
         }
     }
 }
@@ -99,6 +98,10 @@ class RequestInfo extends HttpInfo{
 
     archive(tabId){
         tabs[tabId].requests.push(this);
+        tabs[tabId].pushWebRequest(this);
+        if(this.category !== Categories.NONE){
+            tabs[tabId].setTracker(this.domain);
+        }
         if (tabId === currentTab) {
             this.notifyPopupOfNewRequests(this); // only request are shown in the extension popup for now
         }
@@ -138,6 +141,21 @@ class RequestInfo extends HttpInfo{
         if(this.party === "third" && localFilter().length > 0){
             this.category = Categories.BASICTRACKING;
         }
+        // the referers domain has tracked on this website before
+        // and the request itself is tracking
+        if(this.referer){
+            // TODO: refactor this into something with a consistent order
+            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)){
+                console.log("Referer " + this.referer +" of " + this.url + " is tracker")
+                console.log(this.category)
+                if(this.category === Categories.BASICTRACKING){ //&& this.domain !== this.referer){
+                    console.log("found new trackbytrack " + this.url)
+                    this.category = Categories.TRACKINGBYTRACKER
+                }
+            }
+        } else{
+            console.log("No referer found for " + this.url)
+        }
     }
 
     filterIdCookies() {
@@ -158,6 +176,11 @@ class ResponseInfo extends HttpInfo{
 
     archive(tabId){
         tabs[tabId].responses.push(this);
+        tabs[tabId].pushWebRequest(this);
+        if(this.category !== Categories.NONE){
+            tabs[tabId].setTracker(this.domain);
+        }
+
     }
 
     // for responses there can be several header attributes set cookies
