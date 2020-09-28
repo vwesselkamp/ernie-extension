@@ -13,6 +13,9 @@ class TabInfo {
     this.domains = [];
   }
 
+  getCorrespondingRequest(id){
+      return this.requests.find(request => request.id === id);
+  }
   updateDomain(name){
       let domain = this.domains.find(domain => domain.name === name);
       if(domain){

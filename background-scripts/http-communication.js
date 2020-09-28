@@ -21,6 +21,7 @@ class HttpInfo{
     constructor(webRequest) {
         this.url = webRequest.url;
         this.tabId = webRequest.tabId;
+        this.id = webRequest.requestId;
         this.domain = getSecondLevelDomainFromUrl(webRequest.url);
         this.party = this.checkIfThirdParty(); // move this function into the object?
         this.cookies = [];
@@ -88,16 +89,20 @@ class HttpInfo{
         }
         // the referers domain has tracked on this website before
         // and the request itself is tracking
-        if(this.referer){
+        this.checkTrackByTrack();
+    }
+
+    checkTrackByTrack() {
+        if (this.referer) {
             // TODO: refactor this into something with a consistent order
-            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)){
-                console.log("Referer " + this.referer +" of " + this.url + " is tracker")
-                if(this.category === Categories.BASICTRACKING && this.domain !== this.referer){
+            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)) {
+                console.log("Referer " + this.referer + " of " + this.url + " is tracker")
+                if (this.category === Categories.BASICTRACKING && this.domain !== this.referer) {
                     console.log("found new trackbytrack " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }
             }
-        } else if (this instanceof RequestInfo){
+        } else if (this instanceof RequestInfo) {
             console.log("No referer found for " + this.url)
         }
     }
@@ -208,6 +213,26 @@ class ResponseInfo extends HttpInfo{
                 }
                 console.error(`Error: ${error}`);
             });
+    }
+
+    checkTrackByTrack() {
+        let request = tabs[this.tabId].getCorrespondingRequest(this.id);
+        if(!request){
+            console.warn("No corresponding request found");
+            return;
+        }
+        if (request.referer) {
+            // TODO: refactor this into something with a consistent order
+            if (tabs[this.tabId].signalizeTracker(request.referer)) {
+                console.log("Referer " + request.referer + " of corresponding request to " + this.url + " is tracker")
+                if (this.category === Categories.BASICTRACKING && this.domain !== request.referer) {
+                    console.log("found new trackbytrack " + this.url)
+                    this.category = Categories.TRACKINGBYTRACKER
+                }
+            }
+        } else {
+            console.log("No referer found for " + this.url)
+        }
     }
 }
 
