@@ -107,6 +107,21 @@ class HttpInfo{
             return cookie.identifying === true;
         });
     }
+
+    notifyPopupOfNewRequests(request) {
+        var sending = browser.runtime.sendMessage({
+            request: request
+        });
+
+        sending
+            .then()
+            .catch(function (error) {
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                console.error(`Error: ${error}`);
+            });
+    }
 }
 
 /*
@@ -135,20 +150,6 @@ class RequestInfo extends HttpInfo{
         }
     }
 
-    notifyPopupOfNewRequests(request) {
-        var sending = browser.runtime.sendMessage({
-            request: request
-        });
-
-        sending
-            .then()
-            .catch(function (error) {
-                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                    return;
-                }
-                console.error(`Error: ${error}`);
-            });
-    }
 
     //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
     findCookie(attribute){
@@ -180,7 +181,9 @@ class ResponseInfo extends HttpInfo{
         if(this.category !== Categories.NONE){
             tabs[tabId].setTracker(this.domain);
         }
-
+        if (tabId === currentTab) {
+            this.notifyPopupOfNewRequests(this);
+        }
     }
 
     // for responses there can be several header attributes set cookies
@@ -191,6 +194,20 @@ class ResponseInfo extends HttpInfo{
                 .map(v => v.split(/=(.+)/));
             this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
         }
+    }
+    notifyPopupOfNewRequests(response) {
+        var sending = browser.runtime.sendMessage({
+            response: response
+        });
+
+        sending
+            .then()
+            .catch(function (error) {
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                console.error(`Error: ${error}`);
+            });
     }
 }
 

@@ -112,6 +112,8 @@ function constructPage() {
 // when popup is opened, the data is fetched form the background script and inserted into the html
   document.getElementById("current-page").innerHTML = "Page: " + backgroundPage.tabs[backgroundPage.currentTab].domain;
   document.getElementById("urls").innerHTML = "";
+  document.getElementById("response-urls").innerHTML = "";
+
   backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request, i) => { // error if Tab not initilized
     insertRequest(request);
   });
@@ -145,6 +147,8 @@ function evaluateMessage(message) {
   if (message.request) {
     insertRequest(message.request);
     setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
+  } else if (message.response) {
+    insertResponse(message.response)
   } else if (message.reload) {
     constructPage();
   }
