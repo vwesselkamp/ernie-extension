@@ -24,8 +24,18 @@ class HttpInfo{
         this.id = webRequest.requestId;
         this.domain = getSecondLevelDomainFromUrl(webRequest.url);
         this.party = this.checkIfThirdParty(); // move this function into the object?
+        this.header = this.setHeader(webRequest);
         this.cookies = [];
         this.category = Categories.NONE;
+
+        this.extractFromHeader(this.header).then(()=> {
+            this.assignCategory();
+            this.archive(this.tabId);
+        });
+    }
+
+    setHeader(webRequest) {
+        return webRequest.requestHeaders;
     }
 
     checkIfThirdParty(){
@@ -83,26 +93,31 @@ class HttpInfo{
 
     //TODO: fix the this issue
     assignCategory() {
-        const localFilter = this.filterIdCookies.bind(this);
-        if(this.party === "third" && localFilter().length > 0){
-            this.category = Categories.BASICTRACKING;
-        }
+        // third party requests with identifying cookies
+        this.checkBasicTracking();
         // the referers domain has tracked on this website before
         // and the request itself is tracking
         this.checkTrackByTrack();
     }
 
+    checkBasicTracking() {
+        const localFilter = this.filterIdCookies.bind(this);
+        if (this.party === "third" && localFilter().length > 0) {
+            this.category = Categories.BASICTRACKING;
+        }
+    }
+
     checkTrackByTrack() {
         if (this.referer) {
             // TODO: refactor this into something with a consistent order
-            if (this.referer && tabs[this.tabId].signalizeTracker(this.referer)) {
+            if (tabs[this.tabId].signalizeTracker(this.referer)) {
                 console.log("Referer " + this.referer + " of " + this.url + " is tracker")
                 if (this.category === Categories.BASICTRACKING && this.domain !== this.referer) {
                     console.log("found new trackbytrack " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }
             }
-        } else if (this instanceof RequestInfo) {
+        } else {
             console.log("No referer found for " + this.url)
         }
     }
@@ -127,34 +142,6 @@ class HttpInfo{
                 console.error(`Error: ${error}`);
             });
     }
-}
-
-/*
-  Http request as reduced to the info we need.
- */
-class RequestInfo extends HttpInfo{
-    constructor(webRequest) {
-        super(webRequest);
-        this.header = webRequest.requestHeaders;
-        this.extractFromHeader(this.header)
-            .then(() => {
-                // all cookies are parsed and accessible at this point
-                this.assignCategory();
-                this.archive(this.tabId)
-            })
-    }
-
-    archive(tabId){
-        tabs[tabId].requests.push(this);
-        tabs[tabId].pushWebRequest(this);
-        if(this.category !== Categories.NONE){
-            tabs[tabId].setTracker(this.domain);
-        }
-        if (tabId === currentTab) {
-            this.notifyPopupOfNewRequests(this); // only request are shown in the extension popup for now
-        }
-    }
-
 
     //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
     findCookie(attribute){
@@ -170,14 +157,28 @@ class RequestInfo extends HttpInfo{
     }
 }
 
+/*
+  Http request as reduced to the info we need.
+ */
+class RequestInfo extends HttpInfo{
+
+    archive(tabId){
+        tabs[tabId].requests.push(this);
+        tabs[tabId].pushWebRequest(this);
+        if(this.category !== Categories.NONE){
+            tabs[tabId].setTracker(this.domain);
+        }
+        if (tabId === currentTab) {
+            this.notifyPopupOfNewRequests(this); // only request are shown in the extension popup for now
+        }
+    }
+
+}
+
 class ResponseInfo extends HttpInfo{
-    constructor(webRequest) {
-        super(webRequest);
-        this.header = webRequest.responseHeaders;
-        this.extractFromHeader(this.header).then(()=> {
-            this.assignCategory();
-            this.archive(this.tabId);
-        });
+
+    setHeader(webRequest) {
+        return webRequest.responseHeaders;
     }
 
     archive(tabId){
@@ -200,6 +201,7 @@ class ResponseInfo extends HttpInfo{
             this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
         }
     }
+
     notifyPopupOfNewRequests(response) {
         var sending = browser.runtime.sendMessage({
             response: response
@@ -226,7 +228,7 @@ class ResponseInfo extends HttpInfo{
             if (tabs[this.tabId].signalizeTracker(request.referer)) {
                 console.log("Referer " + request.referer + " of corresponding request to " + this.url + " is tracker")
                 if (this.category === Categories.BASICTRACKING && this.domain !== request.referer) {
-                    console.log("found new trackbytrack " + this.url)
+                    console.log("Tracking initiated by a tracker: " + this.url)
                     this.category = Categories.TRACKINGBYTRACKER
                 }
             }

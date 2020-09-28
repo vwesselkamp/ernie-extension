@@ -1,7 +1,7 @@
 var thirdParty_mode = false;
 
 
-function insertRequest(request) {
+function insertWebRequest(request) {
   let node;
 
   function listIdentifyingCookies() {
@@ -30,44 +30,19 @@ function insertRequest(request) {
   }
 
   node.className = request.category + " " + request.party + " url";
-  if(request.party === "first") {
+  if (request.party === "first") {
     hideElement(node);
   }
+  return node;
+}
+
+function insertRequest(request) {
+  let node = insertWebRequest(request);
   document.getElementById("urls").appendChild(node);
 }
 
 function insertResponse(response) {
-  let node;
-
-  function listIdentifyingCookies() {
-    node = document.createElement("details");
-    let summary = document.createElement("summary");
-    summary.innerText = response.domain + " : " + response.url;
-    node.appendChild(summary)
-    for (let i in response.cookies) {
-      if (response.cookies[i].identifying) {
-        let cookie = document.createElement("div");
-        cookie.innerText = response.cookies[i].key;
-        node.appendChild(cookie);
-      }
-    }
-  }
-
-  function listOnlyUrl() {
-    node = document.createElement("div");
-    node.innerText = response.domain + " : " + response.url;
-  }
-
-  if (response.cookies.filter(cookie => cookie.identifying === true).length > 0) {
-    listIdentifyingCookies();
-  } else {
-    listOnlyUrl();
-  }
-
-  node.className = response.category + " " + response.party + " url";
-  if(response.party === "first") {
-    hideElement(node);
-  }
+  let node = insertWebRequest(response);
   document.getElementById("response-urls").appendChild(node);
 }
 
@@ -90,19 +65,10 @@ function hideElement(element) {
 // currently static
 function setStats(tab){
   try{
-    document.getElementById("requests").innerHTML = tab.requests.length.toString();
+    document.getElementById("requests").innerHTML = (tab.requests.length + tab.responses.length).toString();
     document.getElementById("third").innerHTML = document.getElementsByClassName("third").length.toString();
-
-    let send = 0;
-    tab.requests.forEach((request) => {
-      send += request.cookies.length;
-    })
-    document.getElementById("cookies-send").innerHTML = send.toString();
-    let set = 0;
-    tab.responses.forEach((response) => {
-      set += response.cookies.length;
-    })
-    document.getElementById("cookies-set").innerHTML = set.toString();
+    document.getElementById("basic-tracking").innerHTML = document.getElementsByClassName("tracking").length.toString();;
+    document.getElementById("tracking-by-tracker").innerHTML = document.getElementsByClassName("trackbytrack").length.toString();;
   } catch (e) {
     console.warn(e);
   }
@@ -149,6 +115,7 @@ function evaluateMessage(message) {
     setStats(backgroundPage.tabs[message.request.tabId]); // this is potentially very slow
   } else if (message.response) {
     insertResponse(message.response)
+    setStats(backgroundPage.tabs[message.request.tabId]);
   } else if (message.reload) {
     constructPage();
   }
