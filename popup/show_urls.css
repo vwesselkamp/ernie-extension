@@ -54,7 +54,7 @@ html, body {
 
 .stat {
   display: inline-block;
-  width: 200px;
+  width: 300px;
 }
 .counter{
   display: inline-block;
@@ -89,4 +89,8 @@ html, body {
 
 .tracking {
   color: darkred;
+}
+
+.trackbytrack {
+  color: darkslateblue;
 }
