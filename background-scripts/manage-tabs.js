@@ -27,7 +27,12 @@ class TabInfo {
       return domain;
   }
 
-  pushWebRequest(request){
+  storeWebRequest(request){
+      if (request instanceof Response) {
+          this.responses.push(request);
+      } else if(request instanceof WebRequest){
+          this.requests.push(request);
+      }
       let domain = this.updateDomain(request.domain);
       domain.archive(request);
   }
@@ -50,7 +55,7 @@ class TabInfo {
       this.pendingAfterRedirect.push(redirect);
   }
 
-  getRedirectsIfExists(requestId){
+  getRedirectsIfExist(requestId){
       return this.pendingAfterRedirect.filter(redirect => redirect.id === requestId);
   }
 
@@ -66,10 +71,10 @@ class Domain {
     }
 
     archive(request){
-        if(request instanceof RequestInfo){
-            this.requests.push(request);
-        } else if (request instanceof ResponseInfo){
+        if (request instanceof Response){
             this.responses.push(request);
+        } else if(request instanceof WebRequest){
+            this.requests.push(request);
         }
     }
 }
