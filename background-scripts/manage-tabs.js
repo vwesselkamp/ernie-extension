@@ -11,10 +11,11 @@ class TabInfo {
     this.requests = [];
     this.responses = [];
     this.domains = [];
+    this.pendingAfterRedirect = [];
   }
 
-  getCorrespondingRequest(id){
-      return this.requests.find(request => request.id === id);
+  getCorrespondingRequest(id, url){
+      return this.requests.find(request => request.id === id && request.url === url);
   }
   updateDomain(name){
       let domain = this.domains.find(domain => domain.name === name);
@@ -36,13 +37,21 @@ class TabInfo {
       domain.tracker = true;
   }
 
-  signalizeTracker(domainName) {
+  checkIfTracker(domainName) {
       let domain = this.domains.find(domain => domain.name === domainName);
       if(!domain){
           console.warn("Domain not yet initialized: " + domainName)
           return;
       }
       return domain.tracker;
+  }
+
+  addRedirect(redirect){
+      this.pendingAfterRedirect.push(redirect);
+  }
+
+  getRedirectsIfExists(requestId){
+      return this.pendingAfterRedirect.filter(redirect => redirect.id === requestId);
   }
 
 }

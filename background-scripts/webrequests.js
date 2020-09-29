@@ -11,14 +11,11 @@ function handleIrregularities(requestDetails) {
 }
 
 function logRequest(requestDetails) {
-    console.log(requestDetails.requestId + " " + requestDetails.url)
     if(handleIrregularities(requestDetails)) { return };
     let request = new RequestInfo(requestDetails);
 }
 
 function logResponse(responseDetails) {
-    console.log(responseDetails.requestId + " " + responseDetails.url)
-
     if(handleIrregularities(responseDetails)) { return };
     let response = new ResponseInfo(responseDetails);
 }
@@ -39,6 +36,11 @@ browser.webRequest.onHeadersReceived.addListener(
 function logRedirect(responseDetails) {
     console.warn(responseDetails.requestId + " " + responseDetails.url)
     console.log(responseDetails.redirectUrl);
+    tabs[responseDetails.tabId].addRedirect(
+        {id: responseDetails.requestId,
+            origin: getSecondLevelDomainFromUrl(responseDetails.url),
+            destination: responseDetails.redirectUrl}
+    );
 }
 
 browser.webRequest.onBeforeRedirect.addListener(

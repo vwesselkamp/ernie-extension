@@ -3,10 +3,11 @@ function getSecondLevelDomainFromDomain(url) {
 }
 
 function getSecondLevelDomainFromUrl(tabUrl){
-    var url = new URL(tabUrl);
+    const url = new URL(tabUrl);
     return getSecondLevelDomainFromDomain(url.hostname);
 }
 
+// Enum like structure for the categories of tracking
 var Categories = Object.freeze({
     "BASICTRACKING":"tracking",
     "TRACKINGBYTRACKER":"trackbytrack",
@@ -22,18 +23,22 @@ class HttpInfo{
         this.url = webRequest.url;
         this.tabId = webRequest.tabId;
         this.id = webRequest.requestId;
-        this.domain = getSecondLevelDomainFromUrl(webRequest.url);
-        this.party = this.checkIfThirdParty(); // move this function into the object?
+        this.domain = getSecondLevelDomainFromUrl(webRequest.url); //inline?
+        this.party = this.checkIfThirdParty(); //inline?
         this.header = this.setHeader(webRequest);
         this.cookies = [];
         this.category = Categories.NONE;
 
+        // only after all information from the headers has been processed we assign a category and store the result
         this.extractFromHeader(this.header).then(()=> {
             this.assignCategory();
             this.archive(this.tabId);
         });
     }
 
+    /**
+     * this is here so it can be overwritten for the Response Class, where the header attribute is named differently
+     */
     setHeader(webRequest) {
         return webRequest.requestHeaders;
     }
@@ -46,6 +51,14 @@ class HttpInfo{
 
     }
 
+    /**
+     * Parses each header attribute and extracts the relevant ones
+     * This method is async so that the constructor can wait for it to finish before pushing it to the popup and the
+     * TabInfo Class. This guarantees that all information about cookies and categories is already available when
+     * someone accesses the object
+     * @param header
+     * @returns {Promise} whose content is unimportant, only relevant that it has finished
+     */
     async extractFromHeader(header) {
         for (let i in header){
             this.findCookie(header[i]);
@@ -55,12 +68,35 @@ class HttpInfo{
         return this.checkForSafeCookies()
     }
 
+    //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
+    findCookie(attribute){
+        if (attribute.name.toLowerCase() === "cookie") {
+            // cookies are seperated by ; and the values defined after the first =
+            let result = attribute.value
+                .split(';')
+                .map(v => v.split(/=(.+)/)); // TODO: returns emptz string as third parameter for some reason
+            for (let i in result) {
+                this.cookies.push(new Cookie(this.url, result[i][0].trim(), result[i][1]));
+            }
+        }
+    }
+
     findContentType(attribute){
         if (attribute.name.toLowerCase() === "content-type"){
             this.contentType = attribute.value;
         }
     }
 
+    findReferer(attribute) {
+        if (attribute.name.toLowerCase() === "referer"){
+            this.referer = getSecondLevelDomainFromUrl(attribute.value);
+        }
+    }
+
+    /**
+     *
+     * @returns {Promise<unknown>}
+     */
     checkForSafeCookies(){
         let request = this;
         var cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("url");
@@ -85,11 +121,6 @@ class HttpInfo{
         })
     }
 
-    findReferer(attribute) {
-        if (attribute.name.toLowerCase() === "referer"){
-            this.referer = getSecondLevelDomainFromUrl(attribute.value);
-        }
-    }
 
     //TODO: fix the this issue
     assignCategory() {
@@ -107,20 +138,49 @@ class HttpInfo{
         }
     }
 
+    /**
+     * Checks if either the referer of a request is a tracker or if the request has been a redirect from a tracker
+     * If either is the case and the request itself is a tracking request, it is classified into Cat. II
+     */
     checkTrackByTrack() {
-        if (this.referer) {
-            // TODO: refactor this into something with a consistent order
-            if (tabs[this.tabId].signalizeTracker(this.referer)) {
-                console.info("Referer " + this.referer + " of " + this.url + " is tracker")
-                if (this.category === Categories.BASICTRACKING && this.domain !== this.referer) {
-                    console.info("found new trackbytrack " + this.url)
-                    this.category = Categories.TRACKINGBYTRACKER
-                }
+        // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
+        if(this.category === Categories.BASICTRACKING){
+            // check both options for initiation
+            if(this.checkIfInitiatedByReferer.call(this) || this.checkIfInitiatedByRedirect.call(this)){
+                this.category = Categories.TRACKINGBYTRACKER
             }
-        } else {
-            console.info("No referer found for " + this.url)
         }
     }
+
+    /**
+     * If the referal happens from another domain, it is checked if that domain is another tracker
+     */
+    checkIfInitiatedByReferer() {
+        if (this.referer && this.domain !== this.referer) {
+            // TODO: refactor this into something with a consistent order
+            // if this is the first tracking request made from this domain, the domain has not yet been initialized
+            if (tabs[this.tabId].checkIfTracker(this.referer)) {
+                console.info("Referer " + this.referer + " of " + this.url + " is tracker")
+                return true;
+            }
+        }
+    }
+
+    /**
+     * Gets whole redirect chain unordered, and checks each element
+     * If any redirect domains in the redirect chain have been classified as a tracker, this request is a tracking
+     * request initiated by antoher tracker
+     */
+    checkIfInitiatedByRedirect() {
+        let redirects = tabs[this.tabId].getRedirectsIfExists(this.id);
+        for (const redirect of redirects) {
+            if (tabs[this.tabId].checkIfTracker(redirect.origin)) {
+                console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
+                return true;
+            }
+        }
+    }
+
 
     filterIdCookies() {
         return this.cookies.filter(function (cookie) {
@@ -143,18 +203,6 @@ class HttpInfo{
             });
     }
 
-    //for requests, all the cookies are send in one header attribute, if this is found, the cookies are extracted and returned
-    findCookie(attribute){
-        if (attribute.name.toLowerCase() === "cookie") {
-            // cookies are seperated by ; and the values defined after the first =
-            let result = attribute.value
-                .split(';')
-                .map(v => v.split(/=(.+)/)); // TODO: returns emptz string as third parameter for some reason
-            for (let i in result) {
-                this.cookies.push(new Cookie(this.url, result[i][0].trim(), result[i][1]));
-            }
-        }
-    }
 }
 
 /*
@@ -217,23 +265,23 @@ class ResponseInfo extends HttpInfo{
             });
     }
 
+    /**
+     * @override
+     */
     checkTrackByTrack() {
-        let request = tabs[this.tabId].getCorrespondingRequest(this.id);
-        if(!request){
-            console.warn("No corresponding request found");
-            return;
-        }
-        if (request.referer) {
-            // TODO: refactor this into something with a consistent order
-            if (tabs[this.tabId].signalizeTracker(request.referer)) {
-                console.info("Referer " + request.referer + " of corresponding request to " + this.url + " is tracker")
-                if (this.category === Categories.BASICTRACKING && this.domain !== request.referer) {
-                    console.info("Tracking initiated by a tracker: " + this.url)
-                    this.category = Categories.TRACKINGBYTRACKER
-                }
+        // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
+        if(this.category === Categories.BASICTRACKING){
+            // only proceed if corresponding request exists and can be evaluated
+            let request = tabs[this.tabId].getCorrespondingRequest(this.id, this.url);
+            if(!request){
+                console.warn("No corresponding request found for this response");
+                return;
             }
-        } else {
-            console.info("No referer found for " + this.url)
+            // check both options for initiation
+            // in the case of responses, the initiation happens for the corresponding request
+            if(this.checkIfInitiatedByReferer.call(request) || this.checkIfInitiatedByRedirect.call(request)){
+                this.category = Categories.TRACKINGBYTRACKER
+            }
         }
     }
 }
