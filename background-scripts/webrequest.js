@@ -182,7 +182,7 @@ class WebRequest{
         if (this.referer && this.domain !== this.referer) {
             // TODO: refactor this into something with a consistent order
             // if this is the first tracking request made from this domain, the domain has not yet been initialized
-            if (tabs[this.tabId].checkIfTracker(this.referer)) {
+            if (tabs[this.tabId].isTracker(this.referer)) {
                 console.info("Referer " + this.referer + " of " + this.url + " is tracker")
                 return true;
             }
@@ -197,7 +197,7 @@ class WebRequest{
     isInitiatedByRedirect() {
         let redirects = tabs[this.tabId].getRedirectsIfExist(this.id);
         for (const redirect of redirects) {
-            if (redirect.origin !== this.domain && tabs[this.tabId].checkIfTracker(redirect.origin)) {
+            if (redirect.origin !== this.domain && tabs[this.tabId].isTracker(redirect.origin)) {
                 console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
                 return true;
             }
@@ -244,7 +244,7 @@ class WebRequest{
         tabs[this.tabId].storeWebRequest(this);
         // if this request has been found to be tracking, mark its domain as a tracker
         if(this.category !== Categories.NONE){
-            tabs[this.tabId].setTracker(this.domain);
+            tabs[this.tabId].markDomainAsTracker(this.domain);
         }
         // if this request belongs to the open tab, send it to the popup
         if (this.tabId === currentTab) {
@@ -265,7 +265,6 @@ class Response extends WebRequest{
         return webRequest.responseHeaders;
     }
 
-    //
     /**
      * Extracts cookies from the "set-cookie" attribute
      * For one responses there can be several of these "set-cookie" attributes, but each one only contains one cookie

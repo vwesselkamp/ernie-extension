@@ -1,148 +1,93 @@
+// shares the id of the tab that is currently open to the other background scripts
 var currentTab;
-// stores all tabs by their tabId as index
+// stores all tabs by their tabId as index as TabInfo objects
 var tabs = [];
 
-/*
-Class to keep track ov everything happening in a tab, until a new link is clicked or the site is refreshed
+
+/**
+ * init new Tab after clicking link, reloading or after startup
+ * There is the tabId -1, which isn't associated with any tab
  */
-class TabInfo {
-  constructor(url) {
-    this.domain = getSecondLevelDomainFromUrl(url)
-    this.requests = [];
-    this.responses = [];
-    this.domains = [];
-    this.pendingAfterRedirect = [];
-  }
-
-  getCorrespondingRequest(id, url){
-      return this.requests.find(request => request.id === id && request.url === url);
-  }
-  updateDomain(name){
-      let domain = this.domains.find(domain => domain.name === name);
-      if(domain){
-          return domain;
-      }
-      domain = new Domain(name);
-      this.domains.push(domain);
-      return domain;
-  }
-
-  storeWebRequest(request){
-      if (request instanceof Response) {
-          this.responses.push(request);
-      } else if(request instanceof WebRequest){
-          this.requests.push(request);
-      }
-      let domain = this.updateDomain(request.domain);
-      domain.archive(request);
-  }
-
-  setTracker(domainName){
-      let domain = this.updateDomain(domainName)
-      domain.tracker = true;
-  }
-
-  checkIfTracker(domainName) {
-      let domain = this.domains.find(domain => domain.name === domainName);
-      if(!domain){
-          console.warn("Domain not yet initialized: " + domainName)
-          return;
-      }
-      return domain.tracker;
-  }
-
-  addRedirect(redirect){
-      this.pendingAfterRedirect.push(redirect);
-  }
-
-  getRedirectsIfExist(requestId){
-      return this.pendingAfterRedirect.filter(redirect => redirect.id === requestId);
-  }
-
-}
-
-class Domain {
-    constructor(domain) {
-        this.name = domain;
-        this.tracker = false;
-        this.requests = [];
-        this.responses = [];
-        console.info("Initialized domain " + this.name)
+function initializeCleanTab(tabId) {
+    if( tabId === -1 ) {
+        return;
     }
-
-    archive(request){
-        if (request instanceof Response){
-            this.responses.push(request);
-        } else if(request instanceof WebRequest){
-            this.requests.push(request);
-        }
-    }
-}
-function getActiveTab() {
-  return browser.tabs.query({active: true, currentWindow: true});
+    // gets the information about our tab and initializes our own TabInfo object with it
+    browser.tabs.get(tabId)
+        .then((tab) => {
+            tabs[tabId] = new TabInfo(tab.url);
+        }).catch(error => console.error(error))
 }
 
-async function setCurrentTab() { // activeInfo also contains tabId
-  currentTab = (await getActiveTab())[0].id;
-}
-
-setCurrentTab()
-    .then(() => browser.tabs.query({}))
-    .then(tabs =>{
-      for (let tab of tabs) {
-        initializeCleanTab(tab.id);
-      }
-    })
-    .catch(error => console.error(error))
-
+// triggered when a new tab is opened
 browser.tabs.onCreated.addListener((tab) => {
   initializeCleanTab(tab.id);
 });
 
-// new Tab after clicking link, reloading or after strtup
-// tabs -1 id
-function initializeCleanTab(tabId) {
-  if( tabId === -1 ) {
-    return;
-  }
-  browser.tabs.get(tabId)
-      .then((tab) => {
-        tabs[tabId] = new TabInfo(tab.url);
-      }).catch(error => console.error(error))
+/**
+ * Whenever we leave the current page, we throw out all old data and start with a new TabInfo object
+ * @param details
+ */
+function clearTabsData(details){
+    /**
+     * Notifies Popup so that it can throw out all old requests as well, and start displaying the new ones
+     */
+    function notifyPopupOfReload() {
+        browser.runtime.sendMessage({
+            reload: true
+        })
+            // TODO: code duplication with webrequest class here
+            .then()
+            .catch(function (error) {
+                // All requests are send, but can only be received if popup is open. This error is a result of this.
+                // We can just drop it
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                // Any error printed from here is likely because the popup expected another format from the message
+                console.error(error);
+            });
+    }
+
+    // if the Navigation happens in an iFrame on the page we don't care
+    if(details.frameId !== 0) {
+        console.info("Navigational event on " + details.url + " with frame id " + details.frameId)
+        return;
+    }
+
+    setCurrentTab(); // probably unnecessary?
+
+    tabs[details.tabId] = new TabInfo(details.url);
+    console.info("Cleared tab for " + details.url);
+    notifyPopupOfReload();
 }
 
-
+// Triggered on a Navigational event, which could be reloading, forwards/backwards button, entering a new URL,
+// clicking a link or a redirect.
 browser.webNavigation.onBeforeNavigate.addListener(clearTabsData);
 
-function clearTabsData(details){
-  if(details.frameId !== 0) {
-    console.info("navigational event on " + details.url + " with frame id " + details.frameId)
-    return;
-  }
-  setCurrentTab(); // probably unnecessary
 
-  tabs[details.tabId] = new TabInfo(details.url);
-  console.info("cleared tab for " + details.url);
-  notifyPopupOfReload();
 
-  function notifyPopupOfReload() {
-    browser.runtime.sendMessage({
-      reload: true
-    })
-        .then()
-        // catching the error when the popup is not open to receive messages and just dropping it
-        .catch(function (error) {
-          if (error.toString().includes("Could not establish connection. Receiving end does not exist.")) {
-            return;
-          }
-          console.error(`Error: ${error}`);
-        });
-  }
+function getActiveTab() {
+    return browser.tabs.query({active: true, currentWindow: true});
 }
 
+async function setCurrentTab() {
+    currentTab = (await getActiveTab())[0].id;
+}
 
-// update current tab when the tab is activated
-// doesn"t react if window is changed
+// Update current tab when another tab is activated
+// This event doesn't react if window is changed, which is why we need the onFocusedChanged event as well
 browser.tabs.onActivated.addListener(setCurrentTab);
 
 browser.windows.onFocusChanged.addListener(setCurrentTab);
+
+setCurrentTab()
+    .then(() => browser.tabs.query({}))
+    .then(tabs =>{
+        for (let tab of tabs) {
+            initializeCleanTab(tab.id);
+        }
+    })
+    .catch(error => console.error(error))
+

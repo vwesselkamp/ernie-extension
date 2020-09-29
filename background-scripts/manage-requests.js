@@ -1,7 +1,13 @@
+/**
+ * Gets the domain from a subdomain, as the library psl doesnt handle full URLS
+ */
 function getSecondLevelDomainFromDomain(url) {
-    return psl.get(url); // look at a public suffix list and finds domains such as amazon.co.ukA
+    return psl.get(url); // look at a public suffix list and finds domains such as amazon.co.uk
 }
 
+/**
+ * Gets the domain from a full URL string
+ */
 function getSecondLevelDomainFromUrl(tabUrl){
     const url = new URL(tabUrl);
     return getSecondLevelDomainFromDomain(url.hostname);

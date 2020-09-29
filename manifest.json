@@ -14,9 +14,10 @@
   "background": {
     "scripts": [
       "background-scripts/manage-tabs.js",
-      "background-scripts/http-communication.js",
+      "background-scripts/manage-requests.js",
       "background-scripts/database.js",
-      "background-scripts/webrequests.js",
+      "background-scripts/webrequest.js",
+      "background-scripts/tabinfo.js",
       "libraries/psl.min.js"]
   },
 
