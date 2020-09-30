@@ -13,8 +13,6 @@ function getSecondLevelDomainFromUrl(tabUrl){
     return getSecondLevelDomainFromDomain(url.hostname);
 }
 
-let backgroundFetches = [];
-
 function tabIsUndefined(requestDetails) {
     /**
      * stores the responses to our background fetches in an array from where it should be retrievable for comparison
@@ -22,10 +20,12 @@ function tabIsUndefined(requestDetails) {
     function storeBackgroundFetch() {
         if (requestDetails.tabId === -1) {
             if (requestDetails.responseHeaders) {
-                backgroundFetches.push({
-                    url: requestDetails.url,
-                    cookies: requestDetails.responseHeaders.filter(header => header.name.toLowerCase() === "set-cookie")
-                })
+                const event = new CustomEvent(requestDetails.url,{
+                    detail: requestDetails.responseHeaders.filter(header => header.name.toLowerCase() === "set-cookie")
+                });
+
+                console.log("sending event for " + requestDetails.url )
+                dispatchEvent(event);
             }
         }
     }
@@ -34,7 +34,7 @@ function tabIsUndefined(requestDetails) {
     // I have no way of handling these, so I need to drop them
     // TODO: differentiate web workers from our background fetches
     if(tabs[requestDetails.tabId] === undefined){
-        console.warn("Undefined tab for request " + requestDetails.url)
+        console.info("Undefined tab for request " + requestDetails.url)
         storeBackgroundFetch();
         return true;
     }
@@ -45,7 +45,23 @@ function tabIsUndefined(requestDetails) {
  * @param requestDetails
  */
 function logRequest(requestDetails) {
+    /**
+     * This function only creates the request, when the corresponding answer is available
+     * @param e
+     */
+    function createRequest(e) {
+        console.log("event triggered for " + requestDetails.url)
+        eventTriggered = true;
+        let request = new WebRequest(requestDetails, e.detail);
+        removeEventListener(requestDetails.url, createRequest);
+    }
+
+
     if (tabIsUndefined(requestDetails)) return
+    console.log("added listener for " + requestDetails.url)
+    addEventListener(requestDetails.url, createRequest, false);
+
+    let eventTriggered = false;
 
     // fetch works much like a XHR request
     fetch(requestDetails.url,
@@ -55,8 +71,15 @@ function logRequest(requestDetails) {
             credentials: "omit"
         })
         .then(response => {
-            // here the response should also be available through webRequest
-            let request = new WebRequest(requestDetails);
+            // removes the event handler if no answer came after 3 seconds
+            // tODO; create object if not yet created
+            setTimeout(() => {
+                if(!eventTriggered){
+                    removeEventListener(requestDetails.url, createRequest);
+                    console.warn("removed listener for " + requestDetails.url)
+                    let request = new WebRequest(requestDetails);
+                }
+            }, 3000);
         })
 }
 

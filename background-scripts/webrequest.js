@@ -17,7 +17,10 @@ var Party = Object.freeze({
  */
 class WebRequest{
 
-    constructor(webRequest) {
+    constructor(webRequest, comparisonCookies) {
+        if (comparisonCookies){
+            console.log(comparisonCookies)
+        }
         this.url = webRequest.url; //string with all parameters
         this.browserTabId = webRequest.tabId; // id of the open browser tab
         this.id = webRequest.requestId;
@@ -282,7 +285,6 @@ class Response extends WebRequest{
              */
             let lines = attribute.value.split("\n");
             for(let line of lines){
-                console.log(line)
                 let result = line
                     .split(';', 1)
                     .map(v => v.split(/=(.+)/));
