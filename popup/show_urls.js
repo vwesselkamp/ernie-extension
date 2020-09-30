@@ -1,7 +1,7 @@
 /*
 The popup scripts run everytime the popup is opened. They can get access to the data from the background scripts only
-via getBackgroundPage(). They cannot access the methods of the objects they retrieved, but only the serializable
-parts of the object. It can however access the global methods of the background page
+via getBackgroundPage(). They can access the methods of the objects and the global methods of the background page.
+They cannot do the same, however, for the objects received by runtime.message()
  */
 
 
@@ -41,6 +41,8 @@ parts of the object. It can however access the global methods of the background 
 
 let backgroundPage;
 
+
+
 /**
  * Constructs the HTML for a web request object
  * TODO: Pull this into the WebRequest class
@@ -61,7 +63,7 @@ function insertWebRequest(request) {
     for (let cookie of request.cookies) {
       if (cookie.identifying) {
         let cookieElement = document.createElement("div");
-        cookieElement.innerText = cookie.key;
+        cookieElement.innerText = cookie.key + ": " + cookie.value;
         requestElement.appendChild(cookieElement);
       }
     }
@@ -83,7 +85,8 @@ function insertWebRequest(request) {
 
   // category = type of tracking
   // party = first or third party request
-  requestElement.className = request.category + " " + request.party + " url";
+  let party = request.thirdParty ? "third" : "first";
+  requestElement.className = request.category + " " + party + " url";
 
   // if (request.party === "first") {
   //   hideElement(requestElement);
@@ -152,10 +155,10 @@ getting.then(async (page) => {
 function evaluateMessage(message) {
   if (message.request) {
     insertRequest(message.request);
-    setStats(backgroundPage.tabs[message.request.tabId]);
+    setStats(backgroundPage.tabs[message.request.browserTabId]);
   } else if (message.response) {
     insertResponse(message.response)
-    setStats(backgroundPage.tabs[message.response.tabId]);
+    setStats(backgroundPage.tabs[message.response.browserTabId]);
   } else if (message.reload) {
     constructPage();
   }

@@ -8,7 +8,9 @@ var Categories = Object.freeze({
     "TRACKINGBYTRACKER":"trackbytrack",
     "NONE":"nothing"})
 
-
+var Party = Object.freeze({
+    "THIRD": true,
+    "FIRST": false})
 /**
  * Request class and superclass for all HTTP communication
  * As there is no such thing as an abstract class in JS, the deviating methods for response are only overwritten
@@ -16,11 +18,12 @@ var Categories = Object.freeze({
 class WebRequest{
 
     constructor(webRequest) {
-        this.url = webRequest.url;
-        this.tabId = webRequest.tabId;
+        this.url = webRequest.url; //string with all parameters
+        this.browserTabId = webRequest.tabId; // id of the open browser tab
         this.id = webRequest.requestId;
         this.domain = getSecondLevelDomainFromUrl(webRequest.url); //inline?
-        this.party = this.checkIfThirdParty(); //inline?
+        //not possible to inline this, because when sending it as a runtime message to the popup script, the methods are no longer available
+        this.thirdParty = this.isThirdParty();
         this.header = this.setHeader(webRequest);
         this.cookies = [];
         this.category = Categories.NONE;
@@ -29,7 +32,7 @@ class WebRequest{
         //TODO: move this out of class?
         this.extractFromHeader(this.header).then(()=> {
             this.assignCategory();
-            this.archive(this.tabId);
+            this.archive(this.browserTabId);
         });
     }
 
@@ -42,15 +45,11 @@ class WebRequest{
 
     /**
      * this returns the strings that are later used as classes in the HTML code
-     * @returns {string} that describes type of request
+     * @returns {boolean} that describes type of request
      */
-    checkIfThirdParty(){
+    isThirdParty(){
         // compares request domain to main domain of the whole tab
-        if(this.domain !== tabs[this.tabId].domain){
-            return "third";
-        }
-        return "first";
-
+        return this.domain !== tabs[this.browserTabId].domain;
     }
 
     /**
@@ -158,7 +157,7 @@ class WebRequest{
      * Category "Basic Tracking" is fulfilled when the request is a third party request and there are identifying cookies
      */
     isBasicTracking() {
-        return this.party === "third" && this.cookies.filter(cookie => cookie.identifying === true).length > 0
+        return this.thirdParty && this.cookies.filter(cookie => cookie.identifying === true).length > 0
     }
 
     /**
@@ -182,7 +181,7 @@ class WebRequest{
         if (this.referer && this.domain !== this.referer) {
             // TODO: refactor this into something with a consistent order
             // if this is the first tracking request made from this domain, the domain has not yet been initialized
-            if (tabs[this.tabId].isTracker(this.referer)) {
+            if (tabs[this.browserTabId].isTracker(this.referer)) {
                 console.info("Referer " + this.referer + " of " + this.url + " is tracker")
                 return true;
             }
@@ -195,9 +194,9 @@ class WebRequest{
      * request initiated by antoher tracker
      */
     isInitiatedByRedirect() {
-        let redirects = tabs[this.tabId].getRedirectsIfExist(this.id);
+        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
         for (const redirect of redirects) {
-            if (redirect.origin !== this.domain && tabs[this.tabId].isTracker(redirect.origin)) {
+            if (redirect.origin !== this.domain && tabs[this.browserTabId].isTracker(redirect.origin)) {
                 console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
                 return true;
             }
@@ -241,13 +240,13 @@ class WebRequest{
      * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
      */
     archive(){
-        tabs[this.tabId].storeWebRequest(this);
+        tabs[this.browserTabId].storeWebRequest(this);
         // if this request has been found to be tracking, mark its domain as a tracker
         if(this.category !== Categories.NONE){
-            tabs[this.tabId].markDomainAsTracker(this.domain);
+            tabs[this.browserTabId].markDomainAsTracker(this.domain);
         }
         // if this request belongs to the open tab, send it to the popup
-        if (this.tabId === currentTab) {
+        if (this.browserTabId === currentTab) {
             this.notifyPopupOfNewRequests(this);
         }
     }
@@ -277,11 +276,19 @@ class Response extends WebRequest{
             Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
             We are interested only in the first part which contains key=value; of the cookie
             Separate only at the first =
+            There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
+            by a line break.
+            TODO: cookie parsing not complete, there might even be several cookies in one line
              */
-            let result = attribute.value
-                .split(';', 1)
-                .map(v => v.split(/=(.+)/));
-            this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
+            let lines = attribute.value.split("\n");
+            for(let line of lines){
+                console.log(line)
+                let result = line
+                    .split(';', 1)
+                    .map(v => v.split(/=(.+)/));
+                this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
+            }
+
         }
     }
 
@@ -301,7 +308,7 @@ class Response extends WebRequest{
         // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
         if(this.category === Categories.BASICTRACKING){
             // only proceed if corresponding request exists and can be evaluated
-            let request = tabs[this.tabId].getCorrespondingRequest(this.id, this.url);
+            let request = tabs[this.browserTabId].getCorrespondingRequest(this.id, this.url);
             if(!request){
                 console.warn("No corresponding request found for this response");
                 return false;

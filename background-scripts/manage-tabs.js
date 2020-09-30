@@ -8,14 +8,14 @@ var tabs = [];
  * init new Tab after clicking link, reloading or after startup
  * There is the tabId -1, which isn't associated with any tab
  */
-function initializeCleanTab(tabId) {
-    if( tabId === -1 ) {
+function initializeCleanTab(browserTabId) {
+    if( browserTabId === -1 ) {
         return;
     }
     // gets the information about our tab and initializes our own TabInfo object with it
-    browser.tabs.get(tabId)
+    browser.tabs.get(browserTabId)
         .then((tab) => {
-            tabs[tabId] = new TabInfo(tab.url);
+            tabs[browserTabId] = new TabInfo(tab.url);
         }).catch(error => console.error(error))
 }
 

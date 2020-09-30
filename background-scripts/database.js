@@ -5,7 +5,7 @@ var db;
 The version determines if the database is updated. If the version already exist, it is simply opened. If the version is higher
 than the current one, an upgrade event is triggered. In that event, the database schemas can be updated.
  */
-const request = indexedDB.open("extension-db", 10);
+const request = indexedDB.open("extension-db", 1);
 
 /*
 If this error occurs it most likely means that the database version is incorrect. Try reinstalling the popup,
