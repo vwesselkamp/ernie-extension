@@ -30,10 +30,11 @@ class WebRequest{
 
         // only after all information from the headers has been processed we assign a category and store the result
         //TODO: move this out of class?
-        this.extractFromHeader(comparisonCookies).then(()=> {
-            this.assignCategory();
-            this.archive(this.browserTabId);
-        });
+        this.extractFromHeader(comparisonCookies)
+        // the extracted cookies are then checked for tracking behaviour
+        this.findIdCookies(comparisonCookies);
+        this.assignCategory();
+        this.archive(this.browserTabId);
     }
 
     /**
@@ -54,35 +55,14 @@ class WebRequest{
 
     /**
      * Parses each header attribute and extracts the relevant ones
-     * This method is async so that the constructor can wait for it to finish before pushing it to the popup and the
-     * TabInfo Class. This guarantees that all information about cookies and categories is already available when
-     * someone accesses the object
-     * @returns {Promise} whose content is unimportant, only relevant that it has finished
      */
-    async extractFromHeader(comparisonCookies) {
+    extractFromHeader(comparisonCookies) {
         for (let attribute of this.header){
             this.findCookie(attribute);
             this.findContentType(attribute);
             this.findReferer(attribute);
         }
-        // the extracted cookies are then checked for tracking behaviour
-        if (comparisonCookies){
-            let potential = []
-            for(let comparisonCookie of comparisonCookies){
-                potential.push(...this.parseSetCookie(comparisonCookie))
-            }
-
-            compareCookies.call(this, potential)
-
-        }
-
-        function compareCookies(potential) {
-            for(let cookie of this.cookies){
-                cookie.compareCookies(potential);
-            }
-        }
     }
-
 
     /**
      * extracts all cookies from the cookie header
@@ -97,36 +77,9 @@ class WebRequest{
                 .map(v => v.split(/=(.+)/));
             for (let cookie of rawCookies) {
                 //trims of white spaces at the edges of the key, which are left over from the regex
-                this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1]));
+                this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim()));
             }
         }
-    }
-
-    /**
-     * Example:
-     A3=d=AQABBOKubV8CEDpyvhY-1MerOzNL5rC-loAFEgEBAQEAb193XwAAAAAA_SMAAAcI4q5tX7C-loA&S=AQAAAkP0da8j3VEBAH0bHkie0e8;
-     Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
-     We are interested only in the first part which contains key=value; of the cookie
-     Separate only at the first =
-     There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
-     by a line break.
-     * @param attribute is the value of the header attribute
-     * @returns {[]} the cookies from this attribute
-     */
-    parseSetCookie(attribute) {
-        let collectedCookies = [];
-        let lines = attribute.value.split("\n");
-        for (let line of lines) {
-            let result = line
-                .split(';', 1)
-                /*
-                The following regex splits at every = that is followed by at least one character
-                This way, only the first = is matched
-                 */
-                .map(v => v.split(/=(.+)/));
-            collectedCookies.push(new Cookie(this.url, result[0][0], result[0][1]));
-        }
-        return collectedCookies;
     }
 
     findContentType(attribute){
@@ -139,6 +92,56 @@ class WebRequest{
         if (attribute.name.toLowerCase() === "referer"){
             this.referer = getSecondLevelDomainFromUrl(attribute.value);
         }
+    }
+
+    /**
+     * If we could collect set-cookie headers from the anonymous second background request, we can parse them here
+     * and compare them with the cookies from the original request. If a cookie matches completely, we know that it is
+     * not identifying, but if we find one that differs in value, it can be used to track
+     * @param comparisonCookies
+     */
+    findIdCookies(comparisonCookies) {
+        if (comparisonCookies) {
+            let parsedComparisonCookies = []
+            for (let comparisonCookie of comparisonCookies) {
+                parsedComparisonCookies.push(...this.parseSetCookie(comparisonCookie))
+            }
+            compareWithRequestCookies.call(this, parsedComparisonCookies)
+
+        }
+
+        function compareWithRequestCookies(parsedComparisonCookies) {
+            for (let cookie of this.cookies) {
+                cookie.compareCookiesFromBackgroundRequest(parsedComparisonCookies);
+            }
+        }
+    }
+
+    /**
+     * Example:
+     A3=d=AQABBOKubV8CEDpyvhY-1MerOzNL5rC-loAFEgEBAQEAb193XwAAAAAA_SMAAAcI4q5tX7C-loA&S=AQAAAkP0da8j3VEBAH0bHkie0e8;
+     Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
+     We are interested only in the first part which contains key=value; of the cookie
+     Separate only at the first =
+     TODO: There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
+     by a line break.
+     * @param headerAttribute is the value of the header attribute
+     * @returns {[]} the cookies from this attribute
+     */
+    parseSetCookie(headerAttribute) {
+        let collectedCookies = [];
+        // Line break occurred on walmart.com, and firefox recognizes it, even though it doesn't seem conform to the standard
+        let lines = headerAttribute.value.split("\n");
+        for (let line of lines) {
+            let result = line.split(';', 1)
+            /*
+            The following regex splits at every = that is followed by at least one character
+            This way, only the first = is matched
+             */
+            result = result[0].split(/=(.+)/);
+            collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+        }
+        return collectedCookies;
     }
 
     assignCategory() {
@@ -311,14 +314,19 @@ class Response extends WebRequest{
  */
 class Cookie{
     constructor (url, key, value) {
-        this.url = url;
+        this.url = url; //string with all parameters
         this.key = key;
         this.value = value;
         this.identifying = false; // cookie default to being non identifying
     }
 
-    compareCookies(comparisonCookies){
-        for(let cookie of comparisonCookies){
+    /**
+     * For all the cookies from the background request, check if the key is the same (so same cookie)
+     * but value is different (so identifying possible)
+     * @param comparisonCookies from background reqeust
+     */
+    compareCookiesFromBackgroundRequest(comparisonCookies){
+        for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
                 if (cookie.value !== this.value) {
                     console.info("Found id cookie for " + this.url + ": " + this.key);
