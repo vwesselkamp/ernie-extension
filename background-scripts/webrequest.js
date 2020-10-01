@@ -208,9 +208,6 @@ class WebRequest{
     isInitiatedByRedirect() {
         let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
         if(redirects){
-            for (let param of this.urlSearchParams){
-                console.log(param)
-            }
             for (const redirect of redirects) {
                 if (redirect.origin !== this.domain && tabs[this.browserTabId].isTracker(redirect.origin)) {
                     console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
@@ -223,9 +220,15 @@ class WebRequest{
     isCookieSyncing() {
         let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
         if(redirects) {
-            for (let param of this.urlSearchParams) {
-                console.log(param)
-            }
+            console.log(redirects)
+            console.log(this.url)
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            // console.log(directPredecessor)
+            // console.log(this.url + " " + directPredecessor.origin)
+            // console.log(tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.url).cookies)
+            // for (let param of this.urlSearchParams) {
+            //     console.log(param)
+            // }
         }
         return false;
     }
