@@ -139,7 +139,13 @@ class WebRequest{
             This way, only the first = is matched
              */
             result = result[0].split(/=(.+)/);
-            collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+            try{
+                collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+            } catch (e){
+                console.warn(e);
+                console.log("Parsed cookie: " + result[0] + " " + result[1])
+                console.log("Line: " + line)
+            }
         }
         return collectedCookies;
     }

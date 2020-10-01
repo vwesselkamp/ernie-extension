@@ -13,71 +13,85 @@ function getSecondLevelDomainFromUrl(tabUrl){
     return getSecondLevelDomainFromDomain(url.hostname);
 }
 
+/**
+ * Since we send a second request for each request we send, but its send via fetch() from the background script,
+ * the Tab ID of the reqeust will be -1, as it is not assigned to an actual tab.
+ * Through this we can catch all the background requests, and send an alert via a CustomEvent to the waiting request/
+ * response handlers.
+ * @param requestDetails
+ * @returns {boolean}
+ */
 function tabIsUndefined(requestDetails) {
     /**
-     * stores the responses to our background fetches in an array from where it should be retrievable for comparison
+     * Sends out an event for each response to a background fetch
+     * The Custom Event allows for the cookies to be send directly in the event, instead of saving and retrieving them
+     * at another point.
+     * Often suggested to use in this context were Proxies. If the events turn out not to work, that might be worth
+     * a look at.
+     * Since we send an anonymous fetch without cookies, we should receive some set-cookie headers in the response,
+     * which we can compare to those in our regular request to see if they might be identifying
      */
-    function storeBackgroundFetch() {
-        if (requestDetails.tabId === -1) {
-            if (requestDetails.responseHeaders) {
-                const event = new CustomEvent(requestDetails.url,{
-                    detail: requestDetails.responseHeaders.filter(header => header.name.toLowerCase() === "set-cookie")
-                });
-                dispatchEvent(event);
-            }
+    function alertOfBackgroundFetchResponse() {
+        if (requestDetails.responseHeaders) {
+            const event = new CustomEvent(requestDetails.url,{
+                detail: requestDetails.responseHeaders.filter(header => header.name.toLowerCase() === "set-cookie")
+            });
+            dispatchEvent(event);
         }
     }
 
-    // this appears to happen a lot for Web Workers
-    // I have no way of handling these, so I need to drop them
+
     // TODO: differentiate web workers from our background fetches
-    if(tabs[requestDetails.tabId] === undefined){
-        console.info("Undefined tab for request " + requestDetails.url)
-        storeBackgroundFetch();
+    // webworkers also tend to have a tabId of -1 for their requests, but I suppose it doesn't matter if we shoot that
+    // response into the void
+    if(requestDetails.tabId < 0){
+        alertOfBackgroundFetchResponse();
+        return true;
+    } else if(tabs[requestDetails.tabId] === undefined){    // this appears to happen a lot for Web Workers
+        console.warn("Undefined tab for request " + requestDetails.url)
         return true;
     }
 }
 
 /**
- * creates new Request object for each request the listener catches
+ * Creates new Request object for each request the listener catches
+ * To be able to see which cookies are identifying, another, anonymous, fetch request is executed upon receiving the response for this
+ * request. On receiving the response to that background request, we can extract the cookies that are to be set on a clean browser
+ * and we can compare these to the ones we already have in our regular request. If host and key are the same for two cookies
+ * but value is different, we can strongly assume that that cookie can be used for identifying the user.
  * @param requestDetails
  */
 function logRequest(requestDetails) {
     /**
      * This function only creates the request object when the corresponding answer is available
-     * @param e
+     * @param event on the URL of the request
      */
-    function createRequest(e) {
+    function createRequest(event) {
         eventTriggered = true;
-        let request = new WebRequest(requestDetails, e.detail);
+        let request = new WebRequest(requestDetails, event.detail);
         removeEventListener(requestDetails.url, createRequest);
     }
 
 
-    if (tabIsUndefined(requestDetails)) return
+    if (tabIsUndefined(requestDetails)) return // most likely a background request
+    // if a original request, we need to wait or the response of the background request
     addEventListener(requestDetails.url, createRequest, false);
 
     let eventTriggered = false;
+    /*
+    Since the fetch is only send after the response to this request has been received, the timeout is set directly
+    to remove the listener in case no response came.
+    For initial requests, that didn't get a response therefore, no second request is send. But it is highly unlikely that
+    that second request would have gotten a response anyway.
+     */
+    setTimeout(() => {
+        if(!eventTriggered){
+            removeEventListener(requestDetails.url, createRequest);
+            console.warn("Removed Request listener for " + requestDetails.url)
+            let request = new WebRequest(requestDetails);
+        }
+    }, 5000); //TODO: is this timeout appropriate?
 
-    // fetch works much like a XHR request
-    fetch(requestDetails.url,
-        {
-            // credentials: omit means that the cookies will neither be send nor set in the browser
-            // this is why we need to retrieve the set-cookie from our webRequest
-            method: requestDetails.method,
-            credentials: "omit",
-            cache: "no-cache"
-        })
-        .then(response => {
-            // removes the event handler if no answer came after 5 seconds
-            setTimeout(() => {
-                if(!eventTriggered){
-                    removeEventListener(requestDetails.url, createRequest);
-                    console.warn("removed listener for " + requestDetails.url)
-                    let request = new WebRequest(requestDetails);
-                }
-            }, 5000); //TODO: is this timeout appropriate?
-        })
 }
 
 
@@ -92,12 +106,50 @@ browser.webRequest.onSendHeaders.addListener(
 );
 
 /**
- *  creates new Response object for each request the listener catches
+ * Creates new Response object for each request the listener catches
+ * To be able to see which cookies are identifying, another, anonymous, fetch request is executed upon receiving the response for this
+ * request. On receiving the response to that background request, we can extract the cookies that are to be set on a clean browser
+ * and we can compare these to the ones we already have in our regular request. If host and key are the same for two cookies
+ * but value is different, we can strongly assume that that cookie can be used for identifying the user.
  * @param responseDetails
  */
 function logResponse(responseDetails) {
-    if(tabIsUndefined(responseDetails)) { return };
-    let response = new Response(responseDetails);
+    /**
+     * This function only creates the response object when the corresponding answer is available
+     * @param event on the URL of the request
+     */
+    function createResponse(event) {
+        eventTriggered = true;
+        let response = new Response(responseDetails, event.detail);
+        removeEventListener(responseDetails.url, createResponse);
+    }
+
+    if (tabIsUndefined(responseDetails)) return // drop the background requests as we dont want to work with them further
+    // if a original request, we need to wait or the response of the background request
+    addEventListener(responseDetails.url, createResponse, false);
+
+    let eventTriggered = false;
+
+    // fetch works much like a XHR request
+    fetch(responseDetails.url,
+        {
+            // credentials: omit means that the cookies will neither be send nor set in the browser
+            // this is why we need to retrieve the set-cookie from our webRequest
+            method: responseDetails.method,
+            credentials: "omit",
+            cache: "no-cache"
+        })
+        .then(response => {
+            // removes the event handler if no answer came after 5 seconds
+            setTimeout(() => {
+                if(!eventTriggered){
+                    removeEventListener(responseDetails.url, createResponse);
+                    console.warn("Removed Response listener for " + responseDetails.url)
+                    let response = new Response(responseDetails);
+                }
+            }, 5000); //TODO: is this timeout appropriate?
+        })
+        .catch(error => console.warn(error))
 }
 
 /*
