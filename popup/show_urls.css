@@ -2,54 +2,28 @@ html, body {
   width: 700px;
 }
 
-.hidden {
-  display: none;
-}
-
+/* Styling for Top*/
 .header{
   display: inline-block;
   margin-left: 30px;
 }
-.button {
-  margin: 10px 50px 10px 50px;
-  padding: 10px;
-  text-align: center;
-  font-family: 'Lato';
-  font-size: 1em;
-  cursor: pointer;
-  display:inline-block;
-}
 
-.right{
-  float: right;
-}
-
-.url{
-  white-space: nowrap;
-  margin-bottom: 1%;
-
-}
-
-.name{
-  top: 3px;
-  left: 20px;
+.page{
   font-family: 'Lato', serif;
   font-size: 25px;
   font-weight: 300;
-  cursor: default;
   display: inline-block;
 }
 
+/*Styling for statistics*/
 .statistics{
-  top: 60px;
-  left: 80px;
   font-family: 'Lato', serif;
   cursor: default;
 }
 
 .stat-container{
   /*text-align: center;*/
-  margin-left: 30px;
+  margin: -10px 30px 0px;
 }
 
 .stat {
@@ -60,27 +34,27 @@ html, body {
   display: inline-block;
 }
 
-.page{
-  top: 3px;
-  left: 310px;
-  font-family: 'Lato', serif;
-  font-size: 25px;
-  font-weight: 300;
-  cursor: default;
-  display: inline-block;
+/*Styling for URL windows*/
+.small-titles{
+  margin-left: 20px;
+  font-size: 20px;
 }
-
 
 .urls {
   list-style: none;
   background: none;
-  padding: 20px 20px 20px 20px;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 150px;
+  height: 140px;
   width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.url{
+  white-space: nowrap;
+  margin-bottom: 1%;
+
 }
 
 .third {
@@ -102,3 +76,4 @@ html, body {
 .identifying{
   font-weight: bold;
 }
+
