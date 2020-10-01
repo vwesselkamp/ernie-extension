@@ -71,7 +71,10 @@ class TabInfo {
     }
 
     getRedirectsIfExist(requestId){
-        return this.redirects.filter(redirect => redirect.id === requestId);
+        let redirects = this.redirects.filter(redirect => redirect.id === requestId);
+        if(redirects.length > 0){
+            return redirects;
+        }
     }
 
 }

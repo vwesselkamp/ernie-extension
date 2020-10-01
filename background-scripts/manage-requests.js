@@ -183,7 +183,6 @@ browser.webRequest.onHeadersReceived.addListener(
  */
 function logRedirect(responseDetails) {
     if (responseDetails.tabId < 0) return
-    console.log("Redirect " + responseDetails.requestId)
     tabs[responseDetails.tabId].addRedirect(
         {id: responseDetails.requestId,
             origin: getSecondLevelDomainFromUrl(responseDetails.url),

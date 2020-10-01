@@ -6,17 +6,15 @@
 var Categories = Object.freeze({
     "BASICTRACKING":"tracking",
     "TRACKINGBYTRACKER":"trackbytrack",
-    "NONE":"nothing"})
+    "NONE":"nothing",
+    "SYNCING":"syncing"
+})
 
-var Party = Object.freeze({
-    "THIRD": true,
-    "FIRST": false})
 /**
  * Request class and superclass for all HTTP communication
  * As there is no such thing as an abstract class in JS, the deviating methods for response are only overwritten
  */
 class WebRequest{
-
     constructor(webRequest, comparisonCookies) {
         this.url = webRequest.url; //string with all parameters
         this.browserTabId = webRequest.tabId; // id of the open browser tab
@@ -27,6 +25,7 @@ class WebRequest{
         this.header = this.setHeader(webRequest);
         this.cookies = [];
         this.category = Categories.NONE;
+        this.urlSearchParams = (new URL(this.url)).searchParams
 
         // only after all information from the headers has been processed we assign a category and store the result
         //TODO: move this out of class?
@@ -160,6 +159,10 @@ class WebRequest{
         if(this.isTrackingInitiatedByTracker()){
             this.category = Categories.TRACKINGBYTRACKER
         }
+
+        if(this.isCookieSyncing()){
+            this.category = Categories.SYNCING
+        }
     }
 
     /**
@@ -204,14 +207,28 @@ class WebRequest{
      */
     isInitiatedByRedirect() {
         let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
-        for (const redirect of redirects) {
-            if (redirect.origin !== this.domain && tabs[this.browserTabId].isTracker(redirect.origin)) {
-                console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
-                return true;
+        if(redirects){
+            for (let param of this.urlSearchParams){
+                console.log(param)
+            }
+            for (const redirect of redirects) {
+                if (redirect.origin !== this.domain && tabs[this.browserTabId].isTracker(redirect.origin)) {
+                    console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
+                    return true;
+                }
             }
         }
     }
 
+    isCookieSyncing() {
+        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        if(redirects) {
+            for (let param of this.urlSearchParams) {
+                console.log(param)
+            }
+        }
+        return false;
+    }
     /**
      * If the popup is currently open, it receives all new requests added to the Tab object, so that it doesn't have
      * to retrieve the data from the background pages itself.
@@ -259,6 +276,8 @@ class WebRequest{
             this.notifyPopupOfNewRequests(this);
         }
     }
+
+
 }
 
 
