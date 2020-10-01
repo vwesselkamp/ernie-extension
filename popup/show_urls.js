@@ -54,31 +54,32 @@ function insertWebRequest(request) {
    * The details HTML element can be opened to display the identifying cookies.
    * Append each identifying cookie as an individual element
    */
-  function listIdentifyingCookies() {
+  function listCookies() {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
-    summary.innerText = request.domain + " : " + request.url;
+    summary.innerText = request.id + " - " + request.domain + " : " + request.url;
     requestElement.appendChild(summary)
 
     for (let cookie of request.cookies) {
-      if (cookie.identifying) {
-        let cookieElement = document.createElement("div");
-        cookieElement.innerText = cookie.key + ": " + cookie.value;
-        requestElement.appendChild(cookieElement);
-      }
+      let cookieElement = document.createElement("div");
+      cookieElement.innerText = cookie.key + ": " + cookie.value;
+
+      let identifying = cookie.identifying ? "identifying" : "normal";
+      cookieElement.className = "cookie " + identifying;
+      requestElement.appendChild(cookieElement);
     }
   }
 
   function listOnlyUrl() {
     requestElement = document.createElement("div");
-    requestElement.innerText = request.domain + " : " + request.url;
+    requestElement.innerText = request.id + " - " + request.domain + " : " + request.url;
   }
 
   let requestElement;
 
   // If there are identifying cookies, list them. Otherwise just insert the element as a plain div
-  if (request.cookies.filter(cookie => cookie.identifying === true).length > 0) {
-    listIdentifyingCookies();
+  if (request.cookies.length > 0) {
+    listCookies();
   } else {
     listOnlyUrl();
   }

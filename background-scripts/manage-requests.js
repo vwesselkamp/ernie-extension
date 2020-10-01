@@ -157,7 +157,6 @@ function logResponse(responseDetails) {
             .catch(error => console.warn(error))
     }
 
-
     if (tabIsUndefined(responseDetails)) return // drop the background requests as we dont want to work with them further
     // if a original request, we need to wait or the response of the background request
     addEventListener(responseDetails.url, createResponse, false);
@@ -169,6 +168,8 @@ function logResponse(responseDetails) {
 
 /*
 onHeadersReceived is the first event triggered for a response, and already contains all information we need
+TODO: onHeadersReceived is sometimes triggered twice.
+onResponseStarted isn't, but is triggered only at the end of a redirect chain
  */
 browser.webRequest.onHeadersReceived.addListener(
     logResponse,
@@ -182,6 +183,7 @@ browser.webRequest.onHeadersReceived.addListener(
  */
 function logRedirect(responseDetails) {
     if (responseDetails.tabId < 0) return
+    console.log("Redirect " + responseDetails.requestId)
     tabs[responseDetails.tabId].addRedirect(
         {id: responseDetails.requestId,
             origin: getSecondLevelDomainFromUrl(responseDetails.url),

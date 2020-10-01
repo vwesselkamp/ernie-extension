@@ -94,3 +94,11 @@ html, body {
 .trackbytrack {
   color: darkslateblue;
 }
+
+.cookie{
+  font-weight: normal;
+}
+
+.identifying{
+  font-weight: bold;
+}
