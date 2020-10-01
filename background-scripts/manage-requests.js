@@ -124,32 +124,47 @@ function logResponse(responseDetails) {
         removeEventListener(responseDetails.url, createResponse);
     }
 
+    /**
+     * Fetches the same resource again, but with no cookies send.
+     */
+    function sendAnonymousBackgroundRequest() {
+        // fetch works much like a XHR request
+        // in addition to the resource URL, in init additional headers can be set/changed
+        fetch(responseDetails.url,
+            {
+                /*
+                credentials: omit means that the cookies will neither be send nor set in the browser
+                this is why we need to retrieve the set-cookie from our webRequest
+                no-cache on the other hand is set, so that our background request will in any case contact the server
+                and not fetch the resource simply from the browser cache.
+                no-cache: contact the server if resource still up to date, retrieve it and cache it if there is a new version
+                no-store: dont look at the cache, retrieve the resource, and dont cache the resource after retrieval
+                */
+                method: responseDetails.method,
+                credentials: "omit",
+                cache: "no-cache"
+            })
+            .then(response => {
+                // removes the event handler if no answer came after 5 seconds
+                setTimeout(() => {
+                    if (!eventTriggered) {
+                        removeEventListener(responseDetails.url, createResponse);
+                        console.warn("Removed Response listener for " + responseDetails.url)
+                        let response = new Response(responseDetails);
+                    }
+                }, 5000); //TODO: is this timeout appropriate?
+            })
+            .catch(error => console.warn(error))
+    }
+
+
     if (tabIsUndefined(responseDetails)) return // drop the background requests as we dont want to work with them further
     // if a original request, we need to wait or the response of the background request
     addEventListener(responseDetails.url, createResponse, false);
 
     let eventTriggered = false;
 
-    // fetch works much like a XHR request
-    fetch(responseDetails.url,
-        {
-            // credentials: omit means that the cookies will neither be send nor set in the browser
-            // this is why we need to retrieve the set-cookie from our webRequest
-            method: responseDetails.method,
-            credentials: "omit",
-            cache: "no-cache"
-        })
-        .then(response => {
-            // removes the event handler if no answer came after 5 seconds
-            setTimeout(() => {
-                if(!eventTriggered){
-                    removeEventListener(responseDetails.url, createResponse);
-                    console.warn("Removed Response listener for " + responseDetails.url)
-                    let response = new Response(responseDetails);
-                }
-            }, 5000); //TODO: is this timeout appropriate?
-        })
-        .catch(error => console.warn(error))
+    sendAnonymousBackgroundRequest();
 }
 
 /*
