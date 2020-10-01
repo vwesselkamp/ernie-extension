@@ -15,7 +15,6 @@
     "scripts": [
       "background-scripts/manage-tabs.js",
       "background-scripts/manage-requests.js",
-      "background-scripts/database.js",
       "background-scripts/webrequest.js",
       "background-scripts/tabinfo.js",
       "libraries/psl.min.js"]
