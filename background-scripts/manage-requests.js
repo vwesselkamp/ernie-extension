@@ -23,8 +23,6 @@ function tabIsUndefined(requestDetails) {
                 const event = new CustomEvent(requestDetails.url,{
                     detail: requestDetails.responseHeaders.filter(header => header.name.toLowerCase() === "set-cookie")
                 });
-
-                console.log("sending event for " + requestDetails.url )
                 dispatchEvent(event);
             }
         }
@@ -46,11 +44,10 @@ function tabIsUndefined(requestDetails) {
  */
 function logRequest(requestDetails) {
     /**
-     * This function only creates the request, when the corresponding answer is available
+     * This function only creates the request object when the corresponding answer is available
      * @param e
      */
     function createRequest(e) {
-        console.log("event triggered for " + requestDetails.url)
         eventTriggered = true;
         let request = new WebRequest(requestDetails, e.detail);
         removeEventListener(requestDetails.url, createRequest);
@@ -58,7 +55,6 @@ function logRequest(requestDetails) {
 
 
     if (tabIsUndefined(requestDetails)) return
-    console.log("added listener for " + requestDetails.url)
     addEventListener(requestDetails.url, createRequest, false);
 
     let eventTriggered = false;
@@ -66,20 +62,21 @@ function logRequest(requestDetails) {
     // fetch works much like a XHR request
     fetch(requestDetails.url,
         {
-            // credentails: omit means that the cookies will neither be send nor set in the browser
-            // this is why we need to retrieve the set cookies form our webRequest
-            credentials: "omit"
+            // credentials: omit means that the cookies will neither be send nor set in the browser
+            // this is why we need to retrieve the set-cookie from our webRequest
+            method: requestDetails.method,
+            credentials: "omit",
+            cache: "no-cache"
         })
         .then(response => {
-            // removes the event handler if no answer came after 3 seconds
-            // tODO; create object if not yet created
+            // removes the event handler if no answer came after 5 seconds
             setTimeout(() => {
                 if(!eventTriggered){
                     removeEventListener(requestDetails.url, createRequest);
                     console.warn("removed listener for " + requestDetails.url)
                     let request = new WebRequest(requestDetails);
                 }
-            }, 3000);
+            }, 5000); //TODO: is this timeout appropriate?
         })
 }
 
@@ -117,6 +114,7 @@ browser.webRequest.onHeadersReceived.addListener(
  * @param responseDetails
  */
 function logRedirect(responseDetails) {
+    if (responseDetails.tabId < 0) return
     tabs[responseDetails.tabId].addRedirect(
         {id: responseDetails.requestId,
             origin: getSecondLevelDomainFromUrl(responseDetails.url),

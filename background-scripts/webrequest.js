@@ -18,9 +18,6 @@ var Party = Object.freeze({
 class WebRequest{
 
     constructor(webRequest, comparisonCookies) {
-        if (comparisonCookies){
-            console.log(comparisonCookies)
-        }
         this.url = webRequest.url; //string with all parameters
         this.browserTabId = webRequest.tabId; // id of the open browser tab
         this.id = webRequest.requestId;
@@ -33,7 +30,7 @@ class WebRequest{
 
         // only after all information from the headers has been processed we assign a category and store the result
         //TODO: move this out of class?
-        this.extractFromHeader(this.header).then(()=> {
+        this.extractFromHeader(comparisonCookies).then(()=> {
             this.assignCategory();
             this.archive(this.browserTabId);
         });
@@ -62,13 +59,29 @@ class WebRequest{
      * someone accesses the object
      * @returns {Promise} whose content is unimportant, only relevant that it has finished
      */
-    async extractFromHeader(header) {
-        for (let attribute of header){
+    async extractFromHeader(comparisonCookies) {
+        for (let attribute of this.header){
             this.findCookie(attribute);
             this.findContentType(attribute);
             this.findReferer(attribute);
         }
         // the extracted cookies are then checked for tracking behaviour
+        if (comparisonCookies){
+            let potential = []
+            for(let comparisonCookie of comparisonCookies){
+                potential.push(...this.parseSetCookie(comparisonCookie))
+            }
+
+            compareCookies.call(this, potential)
+
+        }
+
+        function compareCookies(potential) {
+            for(let cookie of this.cookies){
+                cookie.compareCookies(potential);
+            }
+        }
+
         return this.checkForSafeCookies()
     }
 
@@ -89,6 +102,33 @@ class WebRequest{
                 this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1]));
             }
         }
+    }
+
+    /**
+     * Example:
+     A3=d=AQABBOKubV8CEDpyvhY-1MerOzNL5rC-loAFEgEBAQEAb193XwAAAAAA_SMAAAcI4q5tX7C-loA&S=AQAAAkP0da8j3VEBAH0bHkie0e8;
+     Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
+     We are interested only in the first part which contains key=value; of the cookie
+     Separate only at the first =
+     There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
+     by a line break.
+     * @param attribute is the value of the header attribute
+     * @returns {[]} the cookies from this attribute
+     */
+    parseSetCookie(attribute) {
+        let collectedCookies = [];
+        let lines = attribute.value.split("\n");
+        for (let line of lines) {
+            let result = line
+                .split(';', 1)
+                /*
+                The following regex splits at every = that is followed by at least one character
+                This way, only the first = is matched
+                 */
+                .map(v => v.split(/=(.+)/));
+            collectedCookies.push(new Cookie(this.url, result[0][0], result[0][1]));
+        }
+        return collectedCookies;
     }
 
     findContentType(attribute){
@@ -273,26 +313,10 @@ class Response extends WebRequest{
      */
     findCookie(attribute){
         if (attribute.name.toLowerCase() === "set-cookie") {
-            /*
-            Example:
-            A3=d=AQABBOKubV8CEDpyvhY-1MerOzNL5rC-loAFEgEBAQEAb193XwAAAAAA_SMAAAcI4q5tX7C-loA&S=AQAAAkP0da8j3VEBAH0bHkie0e8;
-            Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
-            We are interested only in the first part which contains key=value; of the cookie
-            Separate only at the first =
-            There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
-            by a line break.
-            TODO: cookie parsing not complete, there might even be several cookies in one line
-             */
-            let lines = attribute.value.split("\n");
-            for(let line of lines){
-                let result = line
-                    .split(';', 1)
-                    .map(v => v.split(/=(.+)/));
-                this.cookies.push(new Cookie(this.url, result[0][0], result[0][1]));
-            }
-
+            this.cookies.push(...this.parseSetCookie(attribute));
         }
     }
+
 
     /**
      * @override see same method in WebRequest
@@ -333,13 +357,24 @@ class Cookie{
         this.url = url;
         this.key = key;
         this.value = value;
-        this.identifying = true; // cookie default to being identifying
+        this.identifying = false; // cookie default to being non identifying
     }
 
     setIfIdCookie(key){
         if (key === this.key) {
             this.identifying = false;
             console.info("Found safe cookie for " + this.url + ": " + this.key);
+        }
+    }
+
+    compareCookies(comparisonCookies){
+        for(let cookie of comparisonCookies){
+            if(cookie.key === this.key) {
+                if (cookie.value !== this.value) {
+                    console.info("Found id cookie for " + this.url + ": " + this.key);
+                    this.identifying = true;
+                }
+            }
         }
     }
 }
