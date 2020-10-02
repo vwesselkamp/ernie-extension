@@ -77,3 +77,6 @@ html, body {
   font-weight: bold;
 }
 
+.syncing{
+  color: green;
+}

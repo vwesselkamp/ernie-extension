@@ -90,7 +90,7 @@ function logRequest(requestDetails) {
             console.warn("Removed Request listener for " + requestDetails.url)
             let request = new WebRequest(requestDetails);
         }
-    }, 5000); //TODO: is this timeout appropriate?
+    }, 10000); //TODO: is this timeout appropriate?
 
 }
 
@@ -152,18 +152,25 @@ function logResponse(responseDetails) {
                         console.warn("Removed Response listener for " + responseDetails.url)
                         let response = new Response(responseDetails);
                     }
-                }, 5000); //TODO: is this timeout appropriate?
+                }, 10000); //TODO: is this timeout appropriate?
             })
-            .catch(error => console.warn(error))
+            .catch(error => {
+              console.warn(error)
+              console.log(responseDetails.url);
+              removeEventListener(responseDetails.url, createResponse);
+              console.log("Removed listener due to network error " + responseDetails.url)
+            })
     }
 
     if (tabIsUndefined(responseDetails)) return // drop the background requests as we dont want to work with them further
     // if a original request, we need to wait or the response of the background request
-    addEventListener(responseDetails.url, createResponse, false);
+    if (!responseDetails.fromCache){
+      addEventListener(responseDetails.url, createResponse, false);
 
-    let eventTriggered = false;
+      let eventTriggered = false;
 
-    sendAnonymousBackgroundRequest();
+      sendAnonymousBackgroundRequest();
+    }
 }
 
 /*
@@ -186,6 +193,7 @@ function logRedirect(responseDetails) {
     tabs[responseDetails.tabId].addRedirect(
         {id: responseDetails.requestId,
             origin: getSecondLevelDomainFromUrl(responseDetails.url),
+            originUrl: responseDetails.url,
             destination: responseDetails.redirectUrl}
     );
 }
@@ -198,4 +206,3 @@ browser.webRequest.onBeforeRedirect.addListener(
     logRedirect,
     {urls: ["<all_urls>"]}
 );
-
