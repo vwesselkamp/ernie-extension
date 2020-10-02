@@ -8,7 +8,10 @@
     "webRequest",
     "<all_urls>",
     "tabs",
-    "webNavigation"
+    "webNavigation",
+    "tabHide",
+    "contextualIdentities",
+    "cookies"
   ],
 
   "background": {

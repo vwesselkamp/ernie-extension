@@ -12,8 +12,37 @@ class TabInfo {
         this.responses = [];
         this.domains = [];
         this.redirects = [];
+
+        this.createContainer();
+
     }
 
+    createContainer(){
+      browser.contextualIdentities.create({
+        name: "my-thing",
+        color: "purple",
+        icon: "briefcase"
+      }).then(identity => {
+        this.container = identity;
+        console.log(identity);
+        // try{
+        //   browser.tabs.create({
+        //       active: false
+        //     }).then(mirrorTab => {
+        //       console.log(mirrorTab.id);
+        //       browser.tabs.hide(mirrorTab.id);
+        //     });
+        // } catch (e) {
+        //   console.log(e);
+        // }
+      });
+    }
+
+    removeContainerIfExists(){
+      if(this.container){
+        browser.contextualIdentities.remove(this.container.cookieStoreId).then(()=>console.log("removed!"))
+      }
+    }
     /**
      * @param id of a response
      * @param url of the same response

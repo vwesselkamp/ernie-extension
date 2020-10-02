@@ -113,7 +113,7 @@ function insertResponse(response) {
 function setStats(tab){
   try{
     document.getElementById("requests").innerHTML = (tab.requests.length + tab.responses.length).toString();
-    document.getElementById("third").innerHTML = document.getElementsByClassName("third").length.toString();
+    document.getElementById("syncing").innerHTML = document.getElementsByClassName("syncing").length.toString();
     document.getElementById("basic-tracking").innerHTML = document.getElementsByClassName("tracking").length.toString();
     document.getElementById("tracking-by-tracker").innerHTML = document.getElementsByClassName("trackbytrack").length.toString();
   } catch (e) {

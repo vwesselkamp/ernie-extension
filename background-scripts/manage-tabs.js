@@ -15,14 +15,17 @@ function initializeCleanTab(browserTabId) {
     // gets the information about our tab and initializes our own TabInfo object with it
     browser.tabs.get(browserTabId)
         .then((tab) => {
+            if(tabs[browserTabId]){
+              tabs[browserTabId].removeContainerIfExists();
+            }
             tabs[browserTabId] = new TabInfo(tab.url);
         }).catch(error => console.error(error))
 }
 
 // triggered when a new tab is opened
-browser.tabs.onCreated.addListener((tab) => {
-  initializeCleanTab(tab.id);
-});
+// browser.tabs.onCreated.addListener((tab) => {
+//   initializeCleanTab(tab.id);
+// });
 
 /**
  * Whenever we leave the current page, we throw out all old data and start with a new TabInfo object
@@ -57,8 +60,13 @@ function clearTabsData(details){
 
     setCurrentTab(); // probably unnecessary?
 
+    if(tabs[details.tabId]){
+      tabs[details.tabId].removeContainerIfExists();
+    }
     tabs[details.tabId] = new TabInfo(details.url);
     console.info("Cleared tab for " + details.url);
+
+
     notifyPopupOfReload();
 }
 
@@ -90,4 +98,3 @@ setCurrentTab()
         }
     })
     .catch(error => console.error(error))
-
