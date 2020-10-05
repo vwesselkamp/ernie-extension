@@ -109,19 +109,28 @@ setCurrentTab()
     })
     .catch(error => console.error(error))
 
-function removeContextId(tabId) {
+
+/**
+ * On closing of a tab, we remove the contextual identity as well as the Shadow Tab
+ * @param tabId
+ */
+function removeContainer(tabId) {
     if(tabs[tabId] && tabs[tabId] instanceof TabInfo){
-        console.log("Remove for " + tabs[tabId])
+        browser.tabs.remove(this.mirrorTabId);
         tabs[tabId].removeContainerIfExists();
     }
 }
 
-browser.tabs.onRemoved.addListener(removeContextId);
+browser.tabs.onRemoved.addListener(removeContainer);
 
 
-function isFinished(tabId, changeInfo, tab){
-    if (tab.status === "complete" && tabs[tabId] instanceof ShadowTab) {
-        tabs[tabs[tabId].originTab].evaluateRequests();
+/**
+ * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
+ * TODO; replace tabs[] with object
+ */
+function isFinished(shadowTabId, changeInfo, tab){
+    if (tab.status === "complete" && tabs[shadowTabId] instanceof ShadowTab) {
+        tabs[tabs[shadowTabId].originTab].evaluateRequests();
     }
 }
 

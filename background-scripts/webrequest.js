@@ -27,12 +27,9 @@ class WebRequest{
         this.category = Categories.NONE;
         this.urlSearchParams = (new URL(this.url)).searchParams
 
-        // only after all information from the headers has been processed we assign a category and store the result
-        //TODO: move this out of class?
+        // we process all information from headers and store the request
+        // only later we can analyze it
         this.extractFromHeader(comparisonCookies)
-        // the extracted cookies are then checked for tracking behaviour
-        this.findIdCookies(comparisonCookies);
-        this.assignCategory();
         this.archive(this.browserTabId);
     }
 
@@ -104,20 +101,7 @@ class WebRequest{
      * @param comparisonCookies
      */
     findIdCookies(comparisonCookies) {
-        if (comparisonCookies) {
-            let parsedComparisonCookies = []
-            for (let comparisonCookie of comparisonCookies) {
-                parsedComparisonCookies.push(...this.parseSetCookie(comparisonCookie))
-            }
-            compareWithRequestCookies.call(this, parsedComparisonCookies)
 
-        }
-
-        function compareWithRequestCookies(parsedComparisonCookies) {
-            for (let cookie of this.cookies) {
-                cookie.compareCookiesFromBackgroundRequest(parsedComparisonCookies);
-            }
-        }
     }
 
     /**
@@ -293,10 +277,6 @@ class WebRequest{
      */
     archive(){
         tabs[this.browserTabId].storeWebRequest(this);
-        // if this request has been found to be tracking, mark its domain as a tracker
-        if(this.category !== Categories.NONE){
-            tabs[this.browserTabId].markDomainAsTracker(this.domain);
-        }
         // if this request belongs to the open tab, send it to the popup
         if (this.browserTabId === currentTab) {
             this.notifyPopupOfNewRequests(this);
@@ -376,7 +356,7 @@ class Cookie{
      * but value is different (so identifying possible)
      * @param comparisonCookies from background reqeust
      */
-    compareCookiesFromBackgroundRequest(comparisonCookies){
+    compareCookiesFromShadowRequest(comparisonCookies){
         for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
                 if (cookie.value !== this.value) {

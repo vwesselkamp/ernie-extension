@@ -152,19 +152,9 @@ class TabInfo extends GenericTab{
             console.log("Domain " + domain.name)
             let shadowDomain = tabs[this.mirrorTabId].domains.find(sd => sd.name === domain.name)
             if(shadowDomain){
-                for(let cookie of shadowDomain.cookies){
-                    let commonCookies = domain.cookies.filter(coo => cookie.key === coo.key)
-                    if(commonCookies){
-                        for (let commonCookie of commonCookies){
-                            if(commonCookie.value !== cookie.value){
-                                // console.log("Found one!")
-                                commonCookie.identifying = true;
-                                // console.log(cookie)
-                                // console.log(commonCookie)
-                            }
-                        }
-                    }
 
+                for(let cookie of domain.cookies){
+                    cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
                 }
             }
 
@@ -182,12 +172,6 @@ class TabInfo extends GenericTab{
             // and the request itself is tracking
             if (request.isTrackingInitiatedByTracker()) {
                 request.category = Categories.TRACKINGBYTRACKER
-            }
-        }
-        for(let request of this.requests){
-
-            if(request.isCookieSyncing()){
-                request.category = Categories.SYNCING
             }
         }
 
