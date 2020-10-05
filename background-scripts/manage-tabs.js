@@ -29,9 +29,9 @@ function initializeCleanTab(browserTabId) {
 }
 
 // triggered when a new tab is opened
-// browser.tabs.onCreated.addListener((tab) => {
-//   initializeCleanTab(tab.id);
-// });
+browser.tabs.onCreated.addListener((tab) => {
+  initializeCleanTab(tab.id);
+});
 
 /**
  * Whenever we leave the current page, we throw out all old data and start with a new TabInfo object
@@ -61,7 +61,6 @@ function clearTabsData(details){
     var getting = browser.tabs.get(details.tabId)
 
     getting.then((tab) =>{
-        console.log(tab)
         if(tab.cookieStoreId !== "firefox-default") return;
 
         // if the Navigation happens in an iFrame on the page we don't care

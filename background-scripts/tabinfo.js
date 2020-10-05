@@ -101,7 +101,6 @@ class TabInfo extends ShadowTab{
                 active: false,
                 cookieStoreId: identity.cookieStoreId
             }).then(mirrorTab => {
-              console.log(mirrorTab.id);
               browser.tabs.hide(mirrorTab.id);
             });
         } catch (e) {
