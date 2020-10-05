@@ -15,6 +15,12 @@ function initializeCleanTab(browserTabId) {
     // gets the information about our tab and initializes our own TabInfo object with it
     browser.tabs.get(browserTabId)
         .then((tab) => {
+            if(tab.cookieStoreId !== "firefox-default") {
+                // new ShadowTab is only created when a tab is openened, not if on a tab there is navigation
+                tabs[browserTabId] = new ShadowTab(tab.url);
+                return;
+            }
+
             if(tabs[browserTabId]){
               tabs[browserTabId].removeContainerIfExists();
             }
@@ -52,22 +58,29 @@ function clearTabsData(details){
             });
     }
 
-    // if the Navigation happens in an iFrame on the page we don't care
-    if(details.frameId !== 0) {
-        console.info("Navigational event on " + details.url + " with frame id " + details.frameId)
-        return;
-    }
+    var getting = browser.tabs.get(details.tabId)
 
-    setCurrentTab(); // probably unnecessary?
+    getting.then((tab) =>{
+        console.log(tab)
+        if(tab.cookieStoreId !== "firefox-default") return;
 
-    if(tabs[details.tabId]){
-      tabs[details.tabId].removeContainerIfExists();
-    }
-    tabs[details.tabId] = new TabInfo(details.url);
-    console.info("Cleared tab for " + details.url);
+        // if the Navigation happens in an iFrame on the page we don't care
+        if(details.frameId !== 0) {
+            console.info("Navigational event on " + details.url + " with frame id " + details.frameId)
+            return;
+        }
+
+        setCurrentTab(); // probably unnecessary?
+
+        if(tabs[details.tabId]){
+            tabs[details.tabId].removeContainerIfExists();
+        }
+        tabs[details.tabId] = new TabInfo(details.url);
+        console.info("Cleared tab for " + details.url);
 
 
-    notifyPopupOfReload();
+        notifyPopupOfReload();
+    })
 }
 
 // Triggered on a Navigational event, which could be reloading, forwards/backwards button, entering a new URL,
@@ -98,3 +111,12 @@ setCurrentTab()
         }
     })
     .catch(error => console.error(error))
+
+function removeContextId(tabId) {
+    if(tabs[tabId]){
+        console.log("Remove for " + tabs[tabId])
+        tabs[tabId].removeContainerIfExists();
+    }
+}
+
+browser.tabs.onRemoved.addListener(removeContextId);

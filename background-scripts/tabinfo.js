@@ -1,11 +1,4 @@
-/**
- * Class to keep track of everything happening in a tab, until e.g. a new link is clicked or the site is refreshed
- * TODO: Refactor:
- * There is a duplication in the domain array and the response/request array.
- * From the request/response arrays I need the order of insertion for displaying, but the same requests are also saved
- * in the domains array under their respective domain.
- */
-class TabInfo {
+class ShadowTab {
     constructor(url) {
         this.domain = getSecondLevelDomainFromUrl(url)
         this.requests = [];
@@ -13,36 +6,8 @@ class TabInfo {
         this.domains = [];
         this.redirects = [];
 
-        this.createContainer();
-
     }
 
-    createContainer(){
-      browser.contextualIdentities.create({
-        name: "my-thing",
-        color: "purple",
-        icon: "briefcase"
-      }).then(identity => {
-        this.container = identity;
-        console.log(identity);
-        // try{
-        //   browser.tabs.create({
-        //       active: false
-        //     }).then(mirrorTab => {
-        //       console.log(mirrorTab.id);
-        //       browser.tabs.hide(mirrorTab.id);
-        //     });
-        // } catch (e) {
-        //   console.log(e);
-        // }
-      });
-    }
-
-    removeContainerIfExists(){
-      if(this.container){
-        browser.contextualIdentities.remove(this.container.cookieStoreId).then(()=>console.log("removed!"))
-      }
-    }
     /**
      * @param id of a response
      * @param url of the same response
@@ -104,6 +69,51 @@ class TabInfo {
         if(redirects.length > 0){
             return redirects;
         }
+    }
+}
+
+/**
+ * Class to keep track of everything happening in a tab, until e.g. a new link is clicked or the site is refreshed
+ * TODO: Refactor:
+ * There is a duplication in the domain array and the response/request array.
+ * From the request/response arrays I need the order of insertion for displaying, but the same requests are also saved
+ * in the domains array under their respective domain.
+ */
+class TabInfo extends ShadowTab{
+    constructor(url) {
+        super(url);
+
+        this.createContainer();
+
+    }
+
+    createContainer(){
+      browser.contextualIdentities.create({
+        name: "extension-" + this.domain,
+        color: "purple",
+        icon: "briefcase"
+      }).then(identity => {
+          this.container = identity;
+          console.log("created container for " + this.domain)
+          console.log(identity);
+        try{
+            browser.tabs.create({
+                active: false,
+                cookieStoreId: identity.cookieStoreId
+            }).then(mirrorTab => {
+              console.log(mirrorTab.id);
+              browser.tabs.hide(mirrorTab.id);
+            });
+        } catch (e) {
+        console.log(e);
+        }
+      });
+    }
+
+    removeContainerIfExists(){
+      if(this.container){
+        browser.contextualIdentities.remove(this.container.cookieStoreId).then(()=>console.log("removed for " + this.domain))
+      }
     }
 
 }

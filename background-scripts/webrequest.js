@@ -218,32 +218,32 @@ class WebRequest{
     }
 
     isCookieSyncing() {
-        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
-        if(redirects) {
-
-            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
-            if(directPredecessor){
-              console.log("FOR URL: " + this.url)
-                console.log(directPredecessor)
-                try{
-                  let preCookies = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.originUrl).cookies;
-                  for(let preCookie of preCookies){
-                    for(var value of this.urlSearchParams.values()) {
-                      if(value === preCookie.value){
-                        console.log(preCookie);
-                        return true;
-                      }
-                    }
-                  }
-                } catch (e){
-                  console.log(e);
-                  console.log(tabs[this.browserTabId].requests.filter(request => request.id == this.id));
-                }
-                // for (let param of this.urlSearchParams) {
-                //     console.log(param)
-                // }
-            }
-        }
+        // let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        // if(redirects) {
+        //
+        //     let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+        //     if(directPredecessor){
+        //       // console.log("FOR URL: " + this.url)
+        //       //   console.log(directPredecessor)
+        //         try{
+        //           let preCookies = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.originUrl).cookies;
+        //           for(let preCookie of preCookies){
+        //             for(var value of this.urlSearchParams.values()) {
+        //               if(value === preCookie.value){
+        //                 // console.log(preCookie);
+        //                 return true;
+        //               }
+        //             }
+        //           }
+        //         } catch (e){
+        //           // console.log(e);
+        //           // console.log(tabs[this.browserTabId].requests.filter(request => request.id == this.id));
+        //         }
+        //         // for (let param of this.urlSearchParams) {
+        //         //     console.log(param)
+        //         // }
+        //     }
+        // }
         return false;
     }
     /**
