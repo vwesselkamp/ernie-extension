@@ -76,7 +76,11 @@ class WebRequest{
                 .map(v => v.split(/=(.+)/));
             for (let cookie of rawCookies) {
                 //trims of white spaces at the edges of the key, which are left over from the regex
-                this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim()));
+                if(cookie[1]){
+                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim()));
+                } else {
+                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), ""));
+                }
             }
         }
     }
@@ -139,7 +143,11 @@ class WebRequest{
              */
             result = result[0].split(/=(.+)/);
             try{
-                collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+                if(result[1]){
+                    collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+                } else {
+                    collectedCookies.push(new Cookie(this.url, result[0].trim(), ""));
+                }
             } catch (e){
                 console.warn(e);
                 console.log("Parsed cookie: " + result[0] + " " + result[1])
@@ -153,6 +161,7 @@ class WebRequest{
         // third party requests with identifying cookies
         if(this.isBasicTracking()){
             this.category = Categories.BASICTRACKING;
+            tabs[this.browserTabId].markDomainAsTracker(this.domain);
         }
         // the referers domain has tracked on this website before
         // and the request itself is tracking

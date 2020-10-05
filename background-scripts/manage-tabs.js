@@ -16,15 +16,13 @@ function initializeCleanTab(browserTabId) {
     browser.tabs.get(browserTabId)
         .then((tab) => {
             if(tab.cookieStoreId !== "firefox-default") {
-                // new ShadowTab is only created when a tab is openened, not if on a tab there is navigation
-                tabs[browserTabId] = new ShadowTab(tab.url);
                 return;
             }
 
             if(tabs[browserTabId]){
               tabs[browserTabId].removeContainerIfExists();
             }
-            tabs[browserTabId] = new TabInfo(tab.url);
+            tabs[browserTabId] = new TabInfo(tab.url, browserTabId);
         }).catch(error => console.error(error))
 }
 
@@ -74,7 +72,7 @@ function clearTabsData(details){
         if(tabs[details.tabId]){
             tabs[details.tabId].removeContainerIfExists();
         }
-        tabs[details.tabId] = new TabInfo(details.url);
+        tabs[details.tabId] = new TabInfo(details.url, details.tabId);
         console.info("Cleared tab for " + details.url);
 
 
@@ -112,10 +110,19 @@ setCurrentTab()
     .catch(error => console.error(error))
 
 function removeContextId(tabId) {
-    if(tabs[tabId]){
+    if(tabs[tabId] && tabs[tabId] instanceof TabInfo){
         console.log("Remove for " + tabs[tabId])
         tabs[tabId].removeContainerIfExists();
     }
 }
 
 browser.tabs.onRemoved.addListener(removeContextId);
+
+
+function isFinished(tabId, changeInfo, tab){
+    if (tab.status === "complete" && tabs[tabId] instanceof ShadowTab) {
+        tabs[tabs[tabId].originTab].evaluateRequests();
+    }
+}
+
+browser.tabs.onUpdated.addListener(isFinished, {properties: ["status"]});

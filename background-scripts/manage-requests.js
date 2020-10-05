@@ -19,6 +19,7 @@ function tabIsUndefined(requestDetails) {
     // I have no way of handling these, so I need to drop them
     if(tabs[requestDetails.tabId] === undefined){
         console.warn("Undefined tab for request " + requestDetails.url)
+        console.log(requestDetails)
         return true;
     }
 }
