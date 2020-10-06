@@ -4,43 +4,7 @@ via getBackgroundPage(). They can access the methods of the objects and the glob
 They cannot do the same, however, for the objects received by runtime.message()
  */
 
-
-/*
- This line and all the code in comments belong to buttons in the popup. I'm leaving them in, in case I ever want to reinsert
- the button
- */
-// let thirdParty_mode = false;
-
-// //either hides all non relevant items or displays them
-// function toggleMode(){
-//   const divsToHide = document.getElementsByClassName("first");
-//   for(let i = 0; i < divsToHide.length; i++){
-//     hideElement(divsToHide[i]);
-//   }
-// }
-//
-// function hideElement(element) {
-//   if (thirdParty_mode) {
-//     element.style.display = "none";
-//   } else {
-//     element.style.display = "block"
-//   }
-// }
-
-// document.getElementById("thirdParty_button").addEventListener("click", function(){
-//   document.getElementById("popup-title").innerHTML = "3rd Party Requests";
-//   thirdParty_mode = true;
-//   toggleMode()
-// });
-//
-// document.getElementById("all").addEventListener("click", function(){
-//   document.getElementById("popup-title").innerHTML = "All Requests";
-//   thirdParty_mode = false;
-//   toggleMode();
-// });
-
 let backgroundPage;
-
 
 
 /**
@@ -132,13 +96,26 @@ function constructPage() {
   }
   // set page and clean content of the request/response windows
   document.getElementById("current-page").innerHTML = "Page: " + page
-  document.getElementById("request-urls").innerHTML = "";
-  document.getElementById("response-urls").innerHTML = "";
 
-  // inset all requests/responses collected so far
-  backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request) => insertRequest(request));
-  backgroundPage.tabs[backgroundPage.currentTab].responses.forEach((response) => insertResponse(response));
-  setStats(backgroundPage.tabs[backgroundPage.currentTab]);
+  if(backgroundPage.tabs[backgroundPage.currentTab].isEvaluated()){
+    constructAnalysis();
+  } else {
+    document.getElementById("status").style.display = "block";
+    document.getElementById("analysis").style.display = "none";
+  }
+
+  function constructAnalysis() {
+    document.getElementById("status").style.display = "none";
+    document.getElementById("analysis").style.display = "block";
+
+    document.getElementById("request-urls").innerHTML = "";
+    document.getElementById("response-urls").innerHTML = "";
+
+    // inset all requests/responses collected so far
+    backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request) => insertRequest(request));
+    backgroundPage.tabs[backgroundPage.currentTab].responses.forEach((response) => insertResponse(response));
+    setStats(backgroundPage.tabs[backgroundPage.currentTab]);
+  }
 }
 
 // gets the backgroundPage once on opening
@@ -154,12 +131,14 @@ getting.then(async (page) => {
  * Whenever the popup receives a message from the background scripts, it checks the type of message and acts accordingly
  */
 function evaluateMessage(message) {
-  if (message.request) {
-    insertRequest(message.request);
-    setStats(backgroundPage.tabs[message.request.browserTabId]);
-  } else if (message.response) {
-    insertResponse(message.response)
-    setStats(backgroundPage.tabs[message.response.browserTabId]);
+  if (message.analysis) {
+    console.log("got ping")
+    const getting = browser.runtime.getBackgroundPage();
+    getting.then(async (page) => {
+      backgroundPage = page;
+      // Set current tab in case the popup is opened without a tab being activated
+      backgroundPage.setCurrentTab().then(constructPage);
+    });
   } else if (message.reload) {
     constructPage();
   }

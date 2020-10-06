@@ -231,48 +231,13 @@ class WebRequest{
         // }
         return false;
     }
-    /**
-     * If the popup is currently open, it receives all new requests added to the Tab object, so that it doesn't have
-     * to retrieve the data from the background pages itself.
-     * These are send as a runtime message.
-     * @param request
-     */
-    notifyPopupOfNewRequests(request) {
-        const sending = this.constructMessageToPopup(request);
 
-        sending
-            .then()
-            .catch(function (error) {
-                // All requests are send, but can only be received if popup is open. This error is a result of this.
-                // We can just drop it
-                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                    return;
-                }
-                // Any error printed from here is likely because the popup expected another format from the message
-                console.error(error);
-            });
-    }
-
-    /**
-     * Sends the request and
-     * @returns {Promise<any>} that can be used to extract the answer. As the popup doesn't answer we don't care
-     * about resolving
-     */
-    constructMessageToPopup(request) {
-        return browser.runtime.sendMessage({
-            request: request
-        });
-    }
 
     /**
      * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
      */
     archive(){
         tabs[this.browserTabId].storeWebRequest(this);
-        // if this request belongs to the open tab, send it to the popup
-        if (this.browserTabId === currentTab) {
-            this.notifyPopupOfNewRequests(this);
-        }
     }
 
 
@@ -298,16 +263,6 @@ class Response extends WebRequest{
         if (attribute.name.toLowerCase() === "set-cookie") {
             this.cookies.push(...this.parseSetCookie(attribute));
         }
-    }
-
-
-    /**
-     * @override see same method in WebRequest
-     */
-    constructMessageToPopup(response) {
-        return browser.runtime.sendMessage({
-            response: response
-        });
     }
 
     /**

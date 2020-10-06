@@ -40,6 +40,10 @@ html, body {
   font-size: 20px;
 }
 
+.status{
+  margin-left: 20px;
+}
+
 .urls {
   list-style: none;
   background: none;
@@ -80,3 +84,4 @@ html, body {
 .syncing{
   color: green;
 }
+

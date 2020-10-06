@@ -209,10 +209,39 @@ class TabInfo extends GenericTab{
         setTrackingByTracker.call(this);
 
         this.evaluated = true;
+        this.notifyPopupOfAnalysis()
     }
 
     isEvaluated(){
         return this.evaluated;
+    }
+
+    notifyPopupOfAnalysis() {
+        console.log("Sending ping to popup")
+        const sending = this.constructMessageToPopup();
+
+        sending
+            .then()
+            .catch(function (error) {
+                // All requests are send, but can only be received if popup is open. This error is a result of this.
+                // We can just drop it
+                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
+                    return;
+                }
+                // Any error printed from here is likely because the popup expected another format from the message
+                console.error(error);
+            });
+    }
+
+    /**
+     * Sends the request and
+     * @returns {Promise<any>} that can be used to extract the answer. As the popup doesn't answer we don't care
+     * about resolving
+     */
+    constructMessageToPopup() {
+        return browser.runtime.sendMessage({
+            analysis: true
+        });
     }
 }
 
