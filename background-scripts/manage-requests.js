@@ -72,6 +72,7 @@ function logRedirect(responseDetails) {
     tabs[responseDetails.tabId].addRedirect(
         {id: responseDetails.requestId,
             origin: getSecondLevelDomainFromUrl(responseDetails.url),
+            originUrl: responseDetails.url,
             destination: responseDetails.redirectUrl}
     );
 }

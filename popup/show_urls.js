@@ -77,9 +77,13 @@ function insertResponse(response) {
 function setStats(tab){
   try{
     document.getElementById("requests").innerHTML = (tab.requests.length + tab.responses.length).toString();
-    document.getElementById("syncing").innerHTML = document.getElementsByClassName("syncing").length.toString();
-    document.getElementById("basic-tracking").innerHTML = document.getElementsByClassName("tracking").length.toString();
-    document.getElementById("tracking-by-tracker").innerHTML = document.getElementsByClassName("trackbytrack").length.toString();
+    document.getElementById("basic-tracking").innerHTML = (document.getElementsByClassName("tracking").length-1).toString();
+    document.getElementById("tracking-by-tracker").innerHTML = (document.getElementsByClassName("trackbytrack").length-1).toString();
+    document.getElementById("3rd-syncing").innerHTML = (document.getElementsByClassName("third-syncing").length-1).toString();
+    document.getElementById("1st-syncing").innerHTML = (document.getElementsByClassName("first-syncing").length-1).toString();
+    document.getElementById("forwarding").innerHTML = (document.getElementsByClassName("forwarding").length-1).toString();
+    document.getElementById("analyser").innerHTML = (document.getElementsByClassName("analysis").length-1).toString();
+
   } catch (e) {
     console.warn(e);
   }

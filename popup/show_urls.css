@@ -28,10 +28,11 @@ html, body {
 
 .stat {
   display: inline-block;
-  width: 300px;
+  width: 250px;
 }
 .counter{
   display: inline-block;
+  width: 50px;
 }
 
 /*Styling for URL windows*/
@@ -81,7 +82,18 @@ html, body {
   font-weight: bold;
 }
 
-.syncing{
-  color: green;
+.third-syncing{
+  color: olivedrab;
 }
 
+.first-syncing{
+  color: forestgreen;
+}
+
+.forwarding{
+  color: darkgreen;
+}
+
+.analysis{
+  color: goldenrod;
+}

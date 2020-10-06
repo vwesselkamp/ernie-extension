@@ -213,10 +213,20 @@ class TabInfo extends GenericTab{
             }
         }
 
+        function setCookieSyncing() {
+            for (let request of this.requests) {
+                request.setCookieSyncing();
+            }
+            for (let response of this.responses) {
+                response.setCookieSyncing();
+            }
+        }
+
         setIdentifyingCookies.call(this);
 
         setBasicTracking.call(this);
         setTrackingByTracker.call(this);
+        setCookieSyncing.call(this);
 
         this.evaluated = true;
         this.notifyPopupOfAnalysis()

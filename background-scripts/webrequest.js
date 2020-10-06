@@ -7,7 +7,9 @@ var Categories = Object.freeze({
     "BASICTRACKING":"tracking",
     "TRACKINGBYTRACKER":"trackbytrack",
     "NONE":"nothing",
-    "SYNCING":"syncing"
+    "3rd-SYNCING":"third-syncing",
+    "1st-SYNCING":"first-syncing",
+    "FORWARDING": "forwarding"
 })
 
 /**
@@ -132,8 +134,18 @@ class WebRequest{
     }
 
     setCookieSyncing() {
-        if (this.isCookieSyncing()) {
-            this.category = Categories.SYNCING
+        let originRequest = this.getSyncingCookiesOrigin();
+        if(originRequest){
+            if(originRequest.thirdParty){
+                if (this.isBasicTracking()) {
+                    this.category = Categories["3rd-SYNCING"];
+                } else {
+                    this.category = Categories.FORWARDING;
+                }
+            } else {
+                this.category = Categories["1st-SYNCING"];
+            }
+
         }
     }
 
@@ -202,36 +214,54 @@ class WebRequest{
         }
     }
 
-    isCookieSyncing() {
-        // let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
-        // if(redirects) {
-        //
-        //     let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
-        //     if(directPredecessor){
-        //       // console.log("FOR URL: " + this.url)
-        //       //   console.log(directPredecessor)
-        //         try{
-        //           let preCookies = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.originUrl).cookies;
-        //           for(let preCookie of preCookies){
-        //             for(var value of this.urlSearchParams.values()) {
-        //               if(value === preCookie.value){
-        //                 // console.log(preCookie);
-        //                 return true;
-        //               }
-        //             }
-        //           }
-        //         } catch (e){
-        //           // console.log(e);
-        //           // console.log(tabs[this.browserTabId].requests.filter(request => request.id == this.id));
-        //         }
-        //         // for (let param of this.urlSearchParams) {
-        //         //     console.log(param)
-        //         // }
-        //     }
-        // }
-        return false;
+    getSyncingCookiesOrigin() {
+        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        if(redirects) {
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            if(directPredecessor){
+                console.log("Was Forwarded: " + this.url)
+                try{
+                    let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.originUrl)
+                    console.log('Redirected by ' + originRequest.url)
+                    return originRequest.checkIfCookieSendAsParam(this.urlSearchParams);
+                } catch (e){
+                  console.log(e);
+                }
+            }
+            console.log("Start of chain is " + this.url)
+
+        }
     }
 
+    checkIfCookieSendAsParam(childParams){
+        for(let value of childParams.values()) {
+            for(let preCookie of this.cookies){
+                if(this.compareParameters(value, preCookie)){
+                    console.log("Found originurl " + this.url)
+                    return this;
+                }
+            }
+        }
+        for(let value of this.urlSearchParams.values()) {
+            for(let childValue of childParams.values()){
+                if(value === childValue){
+                    console.log("Forwarded parameter " + value)
+                    return this.getSyncingCookiesOrigin();
+                }
+            }
+        }
+    }
+
+
+    compareParameters(value, preCookie) {
+        if (!preCookie.identifying) return false;
+        if (value === preCookie.value) {
+            console.log("FOUND ONE")
+            console.log(preCookie);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
