@@ -91,6 +91,7 @@ class ShadowTab extends GenericTab{
 class TabInfo extends GenericTab{
     constructor(url, tabId) {
         super(url, tabId);
+        this.evaluated = false;
         this.createContainer();
     }
 
@@ -157,10 +158,22 @@ class TabInfo extends GenericTab{
       }
     }
 
+    /**
+     * Offline evaluation after the web page has finished loading
+     * First all the cookies of the original and shadow request are compared and the identifying set as such
+     * Then all categories are applied to all request/responses
+     * This separates the phases cleanly, meaning that knowledge gained with a later requests can be applied
+     * to change the category of an earlier request
+     */
     evaluateRequests() {
+        /**
+         * Cookies are compared domain wide, meaning that if the domain of a request has a cookie in the same domain of the
+         * shadow request, these are set. This also means, that the early requests are also classified correctly
+         */
         function setIdentifyingCookies() {
             console.log("Comparing now " + this.url)
             if (this.domains.length !== tabs[this.mirrorTabId].domains.length) console.warn("Unequal amount of domains found")
+
             for (let domain of this.domains) {
                 let shadowDomain = tabs[this.mirrorTabId].domains.find(sd => sd.name === domain.name)
                 if (shadowDomain) {
@@ -195,7 +208,11 @@ class TabInfo extends GenericTab{
         setBasicTracking.call(this);
         setTrackingByTracker.call(this);
 
-        console.log("Fini!")
+        this.evaluated = true;
+    }
+
+    isEvaluated(){
+        return this.evaluated;
     }
 }
 

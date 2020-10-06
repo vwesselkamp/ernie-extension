@@ -95,16 +95,6 @@ class WebRequest{
     }
 
     /**
-     * If we could collect set-cookie headers from the anonymous second background request, we can parse them here
-     * and compare them with the cookies from the original request. If a cookie matches completely, we know that it is
-     * not identifying, but if we find one that differs in value, it can be used to track
-     * @param comparisonCookies
-     */
-    findIdCookies(comparisonCookies) {
-
-    }
-
-    /**
      * Example:
      A3=d=AQABBOKubV8CEDpyvhY-1MerOzNL5rC-loAFEgEBAQEAb193XwAAAAAA_SMAAAcI4q5tX7C-loA&S=AQAAAkP0da8j3VEBAH0bHkie0e8;
      Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
@@ -141,14 +131,8 @@ class WebRequest{
         return collectedCookies;
     }
 
-    assignCategory() {
-        // third party requests with identifying cookies
-        this.setBasicTracking();
-        // the referers domain has tracked on this website before
-        // and the request itself is tracking
-        this.setTrackingByTracker();
-
-        if(this.isCookieSyncing()){
+    setCookieSyncing() {
+        if (this.isCookieSyncing()) {
             this.category = Categories.SYNCING
         }
     }
