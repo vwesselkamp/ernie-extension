@@ -125,30 +125,27 @@ function constructPage() {
   }
 }
 
-// gets the backgroundPage once on opening
-const getting = browser.runtime.getBackgroundPage();
-getting.then(async (page) => {
-  backgroundPage = page;
-  // Set current tab in case the popup is opened without a tab being activated
-  backgroundPage.setCurrentTab().then(constructPage);
-});
-
-
 /**
  * Whenever the popup receives a message from the background scripts, it checks the type of message and acts accordingly
  */
 function evaluateMessage(message) {
   if (message.analysis) {
-    console.log("got ping")
-    const getting = browser.runtime.getBackgroundPage();
-    getting.then(async (page) => {
-      backgroundPage = page;
-      // Set current tab in case the popup is opened without a tab being activated
-      backgroundPage.setCurrentTab().then(constructPage);
-    });
+    constructPageFromScratch();
   } else if (message.reload) {
     constructPage();
   }
 }
 
 browser.runtime.onMessage.addListener(evaluateMessage);
+
+// gets the backgroundPage once on opening
+constructPageFromScratch();
+
+function constructPageFromScratch() {
+  browser.runtime.getBackgroundPage()
+      .then(async (page) => {
+        backgroundPage = page;
+        // Set current tab in case the popup is opened without a tab being activated
+        backgroundPage.setCurrentTab().then(constructPage);
+      });
+}

@@ -164,7 +164,8 @@ class TabInfo extends GenericTab{
         }
         if(this.container){
             browser.contextualIdentities.remove(this.container.cookieStoreId)
-                .then(()=>console.log("removed for " + this.domain));
+                .then(()=>console.log("removed for " + this.domain))
+                .catch((e) => console.log(e));
         }
     }
 
