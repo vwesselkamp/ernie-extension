@@ -52,7 +52,7 @@ class WebRequest{
     /**
      * Parses each header attribute and extracts the relevant ones
      */
-    extractFromHeader(comparisonCookies) {
+    extractFromHeader() {
         for (let attribute of this.header){
             this.findCookie(attribute);
             this.findContentType(attribute);

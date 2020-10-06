@@ -57,7 +57,7 @@ function clearTabsData(details){
             });
     }
 
-    var getting = browser.tabs.get(details.tabId)
+    const getting = browser.tabs.get(details.tabId);
 
     getting.then((tab) =>{
         if(tab.cookieStoreId !== "firefox-default") return;
@@ -101,6 +101,11 @@ browser.tabs.onActivated.addListener(setCurrentTab);
 
 browser.windows.onFocusChanged.addListener(setCurrentTab);
 
+/*
+ remove all identities that are leftover from a shutdown of the extension
+ this is needed during development, all cases of a running browser should be covered elsewhere
+ */
+
 browser.contextualIdentities.query({})
     .then((identities) => {
         for (let identity of identities) {
@@ -128,18 +133,16 @@ setCurrentTab()
  */
 function removeContainer(tabId) {
     if(tabs[tabId] && tabs[tabId] instanceof TabInfo){
-        if(this.mirrorTabId){
-            browser.tabs.remove(this.mirrorTabId);
-        }
         tabs[tabId].removeContainerIfExists();
     }
 }
 
-browser.tabs.onRemoved.addListener(removeContainer);
+// browser.tabs.onRemoved.addListener(removeContainer);
 
 
 /**
  * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
+ * It is necessary for some reason to wait a little longer
  * TODO; replace tabs[] with object
  */
 function isFinished(details){

@@ -95,6 +95,10 @@ class TabInfo extends GenericTab{
         this.createContainer();
     }
 
+    isEvaluated(){
+        return this.evaluated;
+    }
+
     /**
      * Creates a container for our shadow tab using the contextual identity API.
      * The container has its own cookieStore and a separate access to localStorage etc.
@@ -105,57 +109,63 @@ class TabInfo extends GenericTab{
          * @param identity
          */
         function createShadowTab(identity) {
-            try {
-                browser.tabs.create({
-                    active: false, // this opens the tab in the background
-                    cookieStoreId: identity.cookieStoreId // this assigns the tab to our created contextual identity
-                }).then(shadowTab => {
-                    browser.tabs.hide(shadowTab.id); // this hides the tab
-                    console.log("Creating shadow Tab for " + this.url)
-                    tabs[shadowTab.id] = new ShadowTab(this.url, shadowTab.id, this.tabId);
-                    this.mirrorTabId = shadowTab.id;
-
-                    /*update sets the url of the shadowTab to that of the original request, however, a lot of resources
-                     are probably taken from cache
-                     tab.reload() has an option to bypass the cache, but I can't get it to work properly
-                     */
-                    browser.tabs.update(shadowTab.id, {
-                        url: this.url
-                    }).then(() => {
-                        // we need to check what it is with caching
-                        // console.log("Reloading " + mirrorTab.id, tabs[mirrorTab.id].requests.length)
-                        //
-                        // browser.tabs.reload(mirrorTab.id, {
-                        //     bypassCache: true
-                        // }).then(()=> {
-                        //     console.log("after")
-                        //     console.log(tabs[mirrorTab.id])
-                        // });
-                    });
-
-
-                }).catch(e => console.log(e));
-            } catch (e) {
-                console.log(e);
-            }
+            browser.tabs.create({
+                active: false, // this opens the tab in the background
+                cookieStoreId: identity.cookieStoreId // this assigns the tab to our created contextual identity
+            }).then(shadowTab => {
+                this.shadowTabId = shadowTab.id;
+                return browser.tabs.hide(shadowTab.id); // this hides the tab
+            }).then(shadowTab => {
+                console.info("Creating shadow Tab for " + this.url)
+                tabs[this.shadowTabId] = new ShadowTab(this.url, this.shadowTabId, this.tabId);
+                /*update sets the url of the shadowTab to that of the original request, however, a lot of resources
+                 are probably taken from cache
+                 tab.reload() has an option to bypass the cache, but I can't get it to work properly
+                 */
+                return browser.tabs.update(this.shadowTabId, {
+                    url: this.url
+                })
+            }).then(() => {
+                // TODO: I need to check what it is with caching
+                // console.log("Reloading " + mirrorTab.id, tabs[mirrorTab.id].requests.length)
+                //
+                // browser.tabs.reload(mirrorTab.id, {
+                //     bypassCache: true
+                // }).then(()=> {
+                //     console.log("after")
+                //     console.log(tabs[mirrorTab.id])
+                // });
+            }).catch(e => {
+                console.log(e)
+                this.removeContainerIfExists(); // this covered by .call() below
+            });
         }
 
         browser.contextualIdentities.create({
             name: "extension-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
-            color: "purple", //these two attriutes are meaningless to us
+            color: "purple", //these two attributes are meaningless to us
             icon: "briefcase"
           }).then(identity => {
               this.container = identity;
-              console.log("created container for " + this.domain)
+              console.info("Created container for " + this.domain)
               createShadowTab.call(this, identity);
           });
     }
 
+    /**
+     * remove contextual identity as well as corresponding shadow tab
+     */
     removeContainerIfExists(){
-      if(this.container){
-          browser.tabs.remove(this.mirrorTabId);
-          browser.contextualIdentities.remove(this.container.cookieStoreId).then(()=>console.log("removed for " + this.domain));
-      }
+        if(this.shadowTabId){
+          browser.tabs.remove(this.shadowTabId).catch(e=>{
+              console.log(e)
+              console.log(this.domain)
+          });
+        }
+        if(this.container){
+            browser.contextualIdentities.remove(this.container.cookieStoreId)
+                .then(()=>console.log("removed for " + this.domain));
+        }
     }
 
     /**
@@ -171,17 +181,16 @@ class TabInfo extends GenericTab{
          * shadow request, these are set. This also means, that the early requests are also classified correctly
          */
         function setIdentifyingCookies() {
-            console.log("Comparing now " + this.url)
-            if (this.domains.length !== tabs[this.mirrorTabId].domains.length) console.warn("Unequal amount of domains found")
+            console.info("Comparing now " + this.url)
+            if (this.domains.length !== tabs[this.shadowTabId].domains.length) console.warn("Unequal amount of domains found")
 
             for (let domain of this.domains) {
-                let shadowDomain = tabs[this.mirrorTabId].domains.find(sd => sd.name === domain.name)
+                let shadowDomain = tabs[this.shadowTabId].domains.find(sd => sd.name === domain.name)
                 if (shadowDomain) {
                     for (let cookie of domain.cookies) {
                         cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
                     }
                 }
-
             }
         }
 
@@ -196,10 +205,10 @@ class TabInfo extends GenericTab{
 
         function setTrackingByTracker() {
             for (let request of this.requests) {
-                request.setBasicTracking();
+                request.setTrackingByTracker();
             }
             for (let response of this.responses) {
-                response.setBasicTracking();
+                response.setTrackingByTracker();
             }
         }
 
@@ -212,12 +221,9 @@ class TabInfo extends GenericTab{
         this.notifyPopupOfAnalysis()
     }
 
-    isEvaluated(){
-        return this.evaluated;
-    }
+
 
     notifyPopupOfAnalysis() {
-        console.log("Sending ping to popup")
         const sending = this.constructMessageToPopup();
 
         sending

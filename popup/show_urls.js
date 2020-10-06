@@ -87,19 +87,11 @@ function setStats(tab){
 
 /**
  * Sets up the Popup page from scratch each time the popup is opened or the window is reloaded
+ * If the analysis of the page has been finished it is inserted, else there is only the waiting screen
  */
 function constructPage() {
-  let page = backgroundPage.tabs[backgroundPage.currentTab].domain;
-  // if in an administrative tab of firefox, or a newly opened one
-  if(page == null){
-    page = "Currently not a web page";
-  }
-  // set page and clean content of the request/response windows
-  document.getElementById("current-page").innerHTML = "Page: " + page
 
-  if(backgroundPage.tabs[backgroundPage.currentTab].isEvaluated()){
-    constructAnalysis();
-  } else {
+  function constructLoadingScreen() {
     document.getElementById("status").style.display = "block";
     document.getElementById("analysis").style.display = "none";
   }
@@ -115,6 +107,21 @@ function constructPage() {
     backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request) => insertRequest(request));
     backgroundPage.tabs[backgroundPage.currentTab].responses.forEach((response) => insertResponse(response));
     setStats(backgroundPage.tabs[backgroundPage.currentTab]);
+  }
+
+  let page = backgroundPage.tabs[backgroundPage.currentTab].domain;
+  // if in an administrative tab of firefox, or a newly opened one
+  if(page == null){
+    page = "Currently not a web page";
+  }
+  // set page and clean content of the request/response windows
+  document.getElementById("current-page").innerHTML = "Page: " + page
+
+  // check if the analysis has already finished
+  if(backgroundPage.tabs[backgroundPage.currentTab].isEvaluated()){
+    constructAnalysis();
+  } else {
+    constructLoadingScreen();
   }
 }
 

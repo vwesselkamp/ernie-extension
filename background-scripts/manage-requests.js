@@ -17,6 +17,9 @@ function getSecondLevelDomainFromUrl(tabUrl){
 function tabIsUndefined(requestDetails) {
     // this appears to happen a lot for Web Workers
     // I have no way of handling these, so I need to drop them
+    if(requestDetails.tabId < 0 ) return true;
+
+    // these leftover ones are often from bacground tabs that have not been initialized
     if(tabs[requestDetails.tabId] === undefined){
         console.warn("Undefined tab for request " + requestDetails.url)
         console.log(requestDetails)
@@ -29,8 +32,8 @@ function tabIsUndefined(requestDetails) {
  * @param requestDetails
  */
 function logRequest(requestDetails) {
-    if(tabIsUndefined(requestDetails)) { return };
-    let request = new WebRequest(requestDetails);
+    if(tabIsUndefined(requestDetails)) { return }
+    new WebRequest(requestDetails);
 }
 
 /*
@@ -48,8 +51,8 @@ browser.webRequest.onSendHeaders.addListener(
  * @param responseDetails
  */
 function logResponse(responseDetails) {
-    if(tabIsUndefined(responseDetails)) { return };
-    let response = new Response(responseDetails);
+    if(tabIsUndefined(responseDetails)) { return }
+    new Response(responseDetails);
 }
 
 /*
