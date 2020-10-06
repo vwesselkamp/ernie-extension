@@ -18,6 +18,7 @@ function initializeCleanTab(browserTabId) {
             if(tab.cookieStoreId !== "firefox-default") {
                 return;
             }
+            if(tab.url == null) return
 
             if(tabs[browserTabId]){
               tabs[browserTabId].removeContainerIfExists();
@@ -100,10 +101,21 @@ browser.tabs.onActivated.addListener(setCurrentTab);
 
 browser.windows.onFocusChanged.addListener(setCurrentTab);
 
+browser.contextualIdentities.query({})
+    .then((identities) => {
+        for (let identity of identities) {
+            if(identity.name.startsWith("extension")){
+                browser.contextualIdentities.remove(identity.cookieStoreId);
+            }
+        }
+        console.log("Removed old identities");
+    })
+
 setCurrentTab()
     .then(() => browser.tabs.query({}))
     .then(tabs =>{
         for (let tab of tabs) {
+            if(tab.url.startsWith("about:")) return;
             initializeCleanTab(tab.id);
         }
     })
@@ -116,7 +128,9 @@ setCurrentTab()
  */
 function removeContainer(tabId) {
     if(tabs[tabId] && tabs[tabId] instanceof TabInfo){
-        browser.tabs.remove(this.mirrorTabId);
+        if(this.mirrorTabId){
+            browser.tabs.remove(this.mirrorTabId);
+        }
         tabs[tabId].removeContainerIfExists();
     }
 }
@@ -128,10 +142,12 @@ browser.tabs.onRemoved.addListener(removeContainer);
  * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
  * TODO; replace tabs[] with object
  */
-function isFinished(shadowTabId, changeInfo, tab){
-    if (tab.status === "complete" && tabs[shadowTabId] instanceof ShadowTab) {
-        tabs[tabs[shadowTabId].originTab].evaluateRequests();
+function isFinished(details){
+    if (tabs[details.tabId] instanceof ShadowTab) {
+        setTimeout(() => {
+            tabs[tabs[details.tabId].originTab].evaluateRequests();
+        }, 1000);
     }
 }
 
-browser.tabs.onUpdated.addListener(isFinished, {properties: ["status"]});
+browser.webNavigation.onCompleted.addListener(isFinished);

@@ -91,52 +91,63 @@ class ShadowTab extends GenericTab{
 class TabInfo extends GenericTab{
     constructor(url, tabId) {
         super(url, tabId);
-        console.log("Created Tab for " + this.domain)
         this.createContainer();
-
     }
 
+    /**
+     * Creates a container for our shadow tab using the contextual identity API.
+     * The container has its own cookieStore and a separate access to localStorage etc.
+     */
     createContainer(){
+        /**
+         * Inside our container, a new hidden tab is created, that mirrors the request of the original tab
+         * @param identity
+         */
+        function createShadowTab(identity) {
+            try {
+                browser.tabs.create({
+                    active: false, // this opens the tab in the background
+                    cookieStoreId: identity.cookieStoreId // this assigns the tab to our created contextual identity
+                }).then(shadowTab => {
+                    browser.tabs.hide(shadowTab.id); // this hides the tab
+                    console.log("Creating shadow Tab for " + this.url)
+                    tabs[shadowTab.id] = new ShadowTab(this.url, shadowTab.id, this.tabId);
+                    this.mirrorTabId = shadowTab.id;
 
-      browser.contextualIdentities.create({
-        name: "extension-" + this.domain,
-        color: "purple",
-        icon: "briefcase"
-      }).then(identity => {
-          this.container = identity;
-          console.log("created container for " + this.domain)
-          console.log(identity);
-        try{
-            browser.tabs.create({
-                active: false,
-                cookieStoreId: identity.cookieStoreId
-            }).then(mirrorTab => {
-                browser.tabs.hide(mirrorTab.id);
-                // new ShadowTab is only created when a tab is openened, not if on a tab there is navigation
-                console.log("Creating shadow Tab for " + this.url)
-                tabs[mirrorTab.id] = new ShadowTab(this.url, mirrorTab.id, this.tabId);
-                this.mirrorTabId = mirrorTab.id;
-
-                browser.tabs.update(mirrorTab.id, {
-                    url: this.url
-                }).then(()=>{
-                    // we need to check what it is with caching
-                    // console.log("Reloading " + mirrorTab.id, tabs[mirrorTab.id].requests.length)
-                    //
-                    // browser.tabs.reload(mirrorTab.id, {
-                    //     bypassCache: true
-                    // }).then(()=> {
-                    //     console.log("after")
-                    //     console.log(tabs[mirrorTab.id])
-                    // });
-                });
+                    /*update sets the url of the shadowTab to that of the original request, however, a lot of resources
+                     are probably taken from cache
+                     tab.reload() has an option to bypass the cache, but I can't get it to work properly
+                     */
+                    browser.tabs.update(shadowTab.id, {
+                        url: this.url
+                    }).then(() => {
+                        // we need to check what it is with caching
+                        // console.log("Reloading " + mirrorTab.id, tabs[mirrorTab.id].requests.length)
+                        //
+                        // browser.tabs.reload(mirrorTab.id, {
+                        //     bypassCache: true
+                        // }).then(()=> {
+                        //     console.log("after")
+                        //     console.log(tabs[mirrorTab.id])
+                        // });
+                    });
 
 
-            }).catch(e => console.log(e));
-        } catch (e) {
-        console.log(e);
+                }).catch(e => console.log(e));
+            } catch (e) {
+                console.log(e);
+            }
         }
-      });
+
+        browser.contextualIdentities.create({
+            name: "extension-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
+            color: "purple", //these two attriutes are meaningless to us
+            icon: "briefcase"
+          }).then(identity => {
+              this.container = identity;
+              console.log("created container for " + this.domain)
+              createShadowTab.call(this, identity);
+          });
     }
 
     removeContainerIfExists(){
@@ -147,40 +158,44 @@ class TabInfo extends GenericTab{
     }
 
     evaluateRequests() {
-        console.log("Comparing now " + this.url)
-        for(let domain of this.domains){
-            console.log("Domain " + domain.name)
-            let shadowDomain = tabs[this.mirrorTabId].domains.find(sd => sd.name === domain.name)
-            if(shadowDomain){
-
-                for(let cookie of domain.cookies){
-                    cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
+        function setIdentifyingCookies() {
+            console.log("Comparing now " + this.url)
+            if (this.domains.length !== tabs[this.mirrorTabId].domains.length) console.warn("Unequal amount of domains found")
+            for (let domain of this.domains) {
+                let shadowDomain = tabs[this.mirrorTabId].domains.find(sd => sd.name === domain.name)
+                if (shadowDomain) {
+                    for (let cookie of domain.cookies) {
+                        cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
+                    }
                 }
-            }
 
-        }
-        for(let request of this.requests) {
-            // third party requests with identifying cookies
-            if (request.isBasicTracking()) {
-                request.category = Categories.BASICTRACKING;
-                tabs[request.browserTabId].markDomainAsTracker(request.domain);
-            }
-        }
-        for(let request of this.requests) {
-
-            // the referers domain has tracked on this website before
-            // and the request itself is tracking
-            if (request.isTrackingInitiatedByTracker()) {
-                request.category = Categories.TRACKINGBYTRACKER
             }
         }
 
-        console.log("fini!")
-        console.log(this.domains)
-        console.log(tabs[this.mirrorTabId].domains)
-        for(let response of this.responses){
-            response.assignCategory();
+        function setBasicTracking() {
+            for (let request of this.requests) {
+                request.setBasicTracking();
+            }
+            for (let response of this.responses) {
+                response.setBasicTracking();
+            }
         }
+
+        function setTrackingByTracker() {
+            for (let request of this.requests) {
+                request.setBasicTracking();
+            }
+            for (let response of this.responses) {
+                response.setBasicTracking();
+            }
+        }
+
+        setIdentifyingCookies.call(this);
+
+        setBasicTracking.call(this);
+        setTrackingByTracker.call(this);
+
+        console.log("Fini!")
     }
 }
 

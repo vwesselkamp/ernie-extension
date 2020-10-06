@@ -143,18 +143,26 @@ class WebRequest{
 
     assignCategory() {
         // third party requests with identifying cookies
-        if(this.isBasicTracking()){
-            this.category = Categories.BASICTRACKING;
-            tabs[this.browserTabId].markDomainAsTracker(this.domain);
-        }
+        this.setBasicTracking();
         // the referers domain has tracked on this website before
         // and the request itself is tracking
-        if(this.isTrackingInitiatedByTracker()){
-            this.category = Categories.TRACKINGBYTRACKER
-        }
+        this.setTrackingByTracker();
 
         if(this.isCookieSyncing()){
             this.category = Categories.SYNCING
+        }
+    }
+
+    setTrackingByTracker() {
+        if (this.isTrackingInitiatedByTracker()) {
+            this.category = Categories.TRACKINGBYTRACKER
+        }
+    }
+
+    setBasicTracking() {
+        if (this.isBasicTracking()) {
+            this.category = Categories.BASICTRACKING;
+            tabs[this.browserTabId].markDomainAsTracker(this.domain);
         }
     }
 
