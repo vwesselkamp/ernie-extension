@@ -150,37 +150,35 @@ class WebRequest{
                 if (this.isBasicTracking()) {
                     this.category = Categories["3rd-SYNCING"];
                 } else {
-                    this.category = Categories.FORWARDING;
+                    this.category = Categories.FORWARDING; //TODO: direct forwarding
                 }
             } else {
                 this.category = Categories["1st-SYNCING"];
             }
-        } else if (this.referer === tabs[this.browserTabId].domain) {
-            if (isDirectInclusionFromDomain.call(this)) {
-                console.log("Found match " + value)
-                console.log(this.url)
-                this.category = Categories["1st-SYNCING"];
-            }
+        } else if (this.isDirectInclusionFromDomain.call(this)) {
+            console.log(this.url)
+            this.category = Categories["1st-SYNCING"];
         }
+    }
 
+    isDirectInclusionFromDomain() {
+        if(this.domain === "bing.com"){
+            console.log("checking direct inclusion")
+            console.log(this)
+            console.log(tabs[this.browserTabId].mainDomain.cookies)
 
-        function isDirectInclusionFromDomain() {
-            let mainCookies = tabs[this.browserTabId].mainDomain.cookies;
-            for (let mainCookie of mainCookies) {
-                if (!mainCookie.identifying) return;
-
-                for (let value of this.urlSearchParams.values()) {
-                    if (this.isParamsEqual(value, mainCookie)) {
-                        console.log("Found match from main domain " + value)
-                        return true;
-                    }
+        }
+        let mainCookies = tabs[this.browserTabId].mainDomain.cookies;
+        for (let mainCookie of mainCookies) {
+            if (!mainCookie.identifying) continue;
+            for (let value of this.urlSearchParams.values()) {
+                if (this.isParamsEqual(value, mainCookie.value)) {
+                    console.log("Found match from main domain " + value)
+                    return true;
                 }
             }
         }
-
-
     }
-
     setTrackingByTracker() {
         if (this.isTrackingInitiatedByTracker()) {
             this.category = Categories.TRACKINGBYTRACKER
@@ -269,7 +267,7 @@ class WebRequest{
      */
     isCookieSendAsParam(){
         for(let predecessorCookie of this.redirectPredecessor.cookies){
-            if (!predecessorCookie.identifying) return false;
+            if (!predecessorCookie.identifying) continue;
 
             for(let value of this.urlSearchParams.values()) {
                 if (this.isParamsEqual(value, predecessorCookie.value)) {
