@@ -29,7 +29,9 @@ function insertWebRequest(request) {
       cookieElement.innerText = cookie.key + ": " + cookie.value;
 
       let identifying = cookie.identifying ? "identifying" : "normal";
-      cookieElement.className = "cookie " + identifying;
+      let safe = cookie.safe ? "safe" : "normal";
+
+      cookieElement.className = "cookie " + identifying + " " + safe;
       requestElement.appendChild(cookieElement);
     }
   }

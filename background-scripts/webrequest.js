@@ -32,6 +32,7 @@ class WebRequest{
         // we process all information from headers and store the request
         // only later we can analyze it
         this.extractFromHeader(comparisonCookies)
+        this.redirectPredecessor = this.getRedirectPredecessor()
         this.archive(this.browserTabId);
     }
 
@@ -90,9 +91,16 @@ class WebRequest{
         }
     }
 
+
     findReferer(attribute) {
         if (attribute.name.toLowerCase() === "referer"){
-            this.referer = getSecondLevelDomainFromUrl(attribute.value);
+            this.completeReferer = attribute.value;
+        }
+    }
+
+    get referer(){
+        if(this.completeReferer){
+            return getSecondLevelDomainFromUrl(this.completeReferer);
         }
     }
 
@@ -136,8 +144,9 @@ class WebRequest{
     setCookieSyncing() {
         let originRequest = this.getRedirectOrigin();
 
-        if(originRequest){
-            if(originRequest.thirdParty){
+        // todo: what about the parameters that are forwarded but never linked to cookies
+        if (originRequest) {
+            if (originRequest.thirdParty) {
                 if (this.isBasicTracking()) {
                     this.category = Categories["3rd-SYNCING"];
                 } else {
@@ -146,20 +155,30 @@ class WebRequest{
             } else {
                 this.category = Categories["1st-SYNCING"];
             }
+        } else if (this.referer === tabs[this.browserTabId].domain) {
+            if (isDirectInclusionFromDomain.call(this)) {
+                console.log("Found match " + value)
+                console.log(this.url)
+                this.category = Categories["1st-SYNCING"];
+            }
+        }
 
-        } else if (this.referer === tabs[this.browserTabId].domain){
-            let mainCookies = tabs[this.browserTabId].upsertDomain(this.referer).cookies;
-            for(let value of this.urlSearchParams.values()) {
-                for(let mainCookie of mainCookies){
-                    if(this.compareParameters(value, mainCookie)){
-                        console.log("Found match " + value)
-                        console.log(this.url)
-                        this.category = Categories["1st-SYNCING"];
-                        return;
+
+        function isDirectInclusionFromDomain() {
+            let mainCookies = tabs[this.browserTabId].mainDomain.cookies;
+            for (let mainCookie of mainCookies) {
+                if (!mainCookie.identifying) return;
+
+                for (let value of this.urlSearchParams.values()) {
+                    if (this.isParamsEqual(value, mainCookie)) {
+                        console.log("Found match from main domain " + value)
+                        return true;
                     }
                 }
             }
         }
+
+
     }
 
     setTrackingByTracker() {
@@ -227,53 +246,59 @@ class WebRequest{
         }
     }
 
+    /**
+     * If the request is a result of a redirection, check first if the cookies of the redirecting request have been
+     * set as an URL parameter. If not, but the Parameter also occurs in the redirecting requests URL, recursively check
+     * that request as well.
+     * TODO: no solution for if the parameter is never linked to a cookie yet
+     * @returns {undefined| WebRequest} the origin request of the cookie forwarded through URL parameters
+     */
     getRedirectOrigin() {
-        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
-        if(redirects) {
-            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
-            if(directPredecessor){
-                console.log("Was Forwarded: " + this.url)
-                try{
-                    let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.id, directPredecessor.originUrl)
-                    console.log('Redirected by ' + originRequest.url)
-                    return originRequest.checkIfCookieSendAsParam(this.urlSearchParams);
-                } catch (e){
-                  console.log(e);
-                }
+        if (this.redirectPredecessor) {
+            if(this.isCookieSendAsParam()){
+                return this.redirectPredecessor;
+            } else if (this.isParamsForwarded()){
+                return this.redirectPredecessor.getRedirectOrigin();
             }
-            console.log("Start of chain is " + this.url)
-
         }
     }
 
-    checkIfCookieSendAsParam(childParams){
-        for(let value of childParams.values()) {
-            for(let preCookie of this.cookies){
-                if(this.compareParameters(value, preCookie)){
-                    console.log("Found originurl " + this.url)
-                    return this;
-                }
-            }
-        }
-        for(let value of this.urlSearchParams.values()) {
-            for(let childValue of childParams.values()){
-                if(value === childValue){
-                    console.log("Forwarded parameter " + value)
-                    return this.getRedirectOrigin();
+    /**
+     * the cookie of the request that redirected to our request of interest is send as Url Parameter
+     * @returns {boolean}
+     */
+    isCookieSendAsParam(){
+        for(let predecessorCookie of this.redirectPredecessor.cookies){
+            if (!predecessorCookie.identifying) return false;
+
+            for(let value of this.urlSearchParams.values()) {
+                if (this.isParamsEqual(value, predecessorCookie.value)) {
+                    console.log("FOUND ONE for " + this.url)
+                    console.log(predecessorCookie);
+                    return true;
                 }
             }
         }
     }
 
-
-    compareParameters(value, preCookie) {
-        if (!preCookie.identifying) return false;
-        if (value === preCookie.value) {
-            console.log("FOUND ONE")
-            console.log(preCookie);
-            return true;
+    /**
+     * the Parameter of oru request also occurs in the parameter of the preceding request
+     * @returns {boolean}
+     */
+    isParamsForwarded(){
+        for(let originalParam of this.urlSearchParams.values()) {
+            for(let predecessorParam of this.redirectPredecessor.urlSearchParams.values()){
+                if(this.isParamsEqual(originalParam, predecessorParam)){
+                    console.log("Forwarded parameter " + originalParam)
+                    return true;
+                }
+            }
         }
-        return false;
+    }
+
+
+    isParamsEqual(originalParameterValue, comparisonValue) {
+        return originalParameterValue === comparisonValue;
     }
 
     /**
@@ -283,7 +308,23 @@ class WebRequest{
         tabs[this.browserTabId].storeWebRequest(this);
     }
 
-
+    /**
+     * Gets from the stored redirects the reqeust that redirect to our request, if it exists
+     * @returns {any}
+     */
+    getRedirectPredecessor() {
+        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        if (redirects) {
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            if (directPredecessor) {
+                let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
+                return originRequest;
+            }
+        } else if(this.completeReferer){
+            let originRequest = tabs[this.browserTabId].getCorrespondingRequest(this.completeReferer)
+            return originRequest;
+        }
+    }
 }
 
 
@@ -339,6 +380,7 @@ class Cookie{
         this.key = key;
         this.value = value;
         this.identifying = false; // cookie default to being non identifying
+        this.safe = false; // cookies also default to non-safe until proven otherwise
     }
 
     /**
@@ -352,6 +394,8 @@ class Cookie{
                 if (cookie.value !== this.value) {
                     console.info("Found id cookie for " + this.url + ": " + this.key);
                     this.identifying = true;
+                } else {
+                    this.safe = true;
                 }
             }
         }

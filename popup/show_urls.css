@@ -81,6 +81,9 @@ html, body {
 .identifying{
   font-weight: bold;
 }
+.safe{
+  font-style: italic;
+}
 
 .third-syncing{
   color: olivedrab;

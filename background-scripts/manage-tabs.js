@@ -137,7 +137,7 @@ function removeContainer(tabId) {
     }
 }
 
-// browser.tabs.onRemoved.addListener(removeContainer);
+browser.tabs.onRemoved.addListener(removeContainer);
 
 
 /**

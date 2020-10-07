@@ -15,8 +15,12 @@ class GenericTab {
      * @param url of the same response
      * @returns the requests that belongs to the response
      */
-    getCorrespondingRequest(id, url){
-        return this.requests.find(request => request.id === id && request.url === url);
+    getCorrespondingRequest(url, id){
+        if(id){
+            return this.requests.find(request => request.id === id && request.url === url);
+        } else {
+            return this.requests.find(request => request.url === url);
+        }
     }
 
     /**
@@ -31,6 +35,10 @@ class GenericTab {
         domain = new Domain(name);
         this.domains.push(domain);
         return domain;
+    }
+
+    get mainDomain(){
+        return this.domains.find(domain => domain.name === this.domain);
     }
 
     /**
@@ -177,9 +185,6 @@ class TabInfo extends GenericTab{
             for (let domain of this.domains) {
                 let shadowDomain = tabs[this.shadowTabId].domains.find(sd => sd.name === domain.name)
                 if (shadowDomain) {
-                    if (shadowDomain.name === "walmartimages.com"){
-                        console.log(shadowDomain.cookies)
-                    }
                     for (let cookie of domain.cookies) {
                         cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
                     }
