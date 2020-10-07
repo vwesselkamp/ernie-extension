@@ -134,7 +134,8 @@ class WebRequest{
     }
 
     setCookieSyncing() {
-        let originRequest = this.getSyncingCookiesOrigin();
+        let originRequest = this.getRedirectOrigin();
+
         if(originRequest){
             if(originRequest.thirdParty){
                 if (this.isBasicTracking()) {
@@ -146,6 +147,18 @@ class WebRequest{
                 this.category = Categories["1st-SYNCING"];
             }
 
+        } else if (this.referer === tabs[this.browserTabId].domain){
+            let mainCookies = tabs[this.browserTabId].upsertDomain(this.referer).cookies;
+            for(let value of this.urlSearchParams.values()) {
+                for(let mainCookie of mainCookies){
+                    if(this.compareParameters(value, mainCookie)){
+                        console.log("Found match " + value)
+                        console.log(this.url)
+                        this.category = Categories["1st-SYNCING"];
+                        return;
+                    }
+                }
+            }
         }
     }
 
@@ -214,7 +227,7 @@ class WebRequest{
         }
     }
 
-    getSyncingCookiesOrigin() {
+    getRedirectOrigin() {
         let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
         if(redirects) {
             let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
@@ -246,7 +259,7 @@ class WebRequest{
             for(let childValue of childParams.values()){
                 if(value === childValue){
                     console.log("Forwarded parameter " + value)
-                    return this.getSyncingCookiesOrigin();
+                    return this.getRedirectOrigin();
                 }
             }
         }

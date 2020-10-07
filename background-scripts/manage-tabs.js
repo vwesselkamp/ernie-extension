@@ -149,7 +149,7 @@ function isFinished(details){
     if (tabs[details.tabId] instanceof ShadowTab) {
         setTimeout(() => {
             tabs[tabs[details.tabId].originTab].evaluateRequests();
-        }, 1000);
+        }, 2000);
     }
 }
 
