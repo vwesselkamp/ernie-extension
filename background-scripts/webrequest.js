@@ -32,7 +32,7 @@ class WebRequest{
         // we process all information from headers and store the request
         // only later we can analyze it
         this.extractFromHeader(comparisonCookies)
-        this.redirectPredecessor = this.getRedirectPredecessor()
+        this.predecessor = this.getPredecessor()
         this.archive(this.browserTabId);
     }
 
@@ -141,6 +141,65 @@ class WebRequest{
         return collectedCookies;
     }
 
+
+    setTrackingByTracker() {
+        if (this.isTrackingInitiatedByTracker()) {
+            this.category = Categories.TRACKINGBYTRACKER
+        }
+    }
+
+    setBasicTracking() {
+        if (this.isBasicTracking()) {
+            this.category = Categories.BASICTRACKING;
+            tabs[this.browserTabId].markDomainAsTracker(this.domain);
+            console.log(this.category)
+            return false;
+        }
+    }
+
+    /**
+     * Category "Basic Tracking" is fulfilled when the request is a third party request and there are identifying cookies
+     */
+    isBasicTracking() {
+        for(let cookie of this.cookies){
+            if (cookie.identifying && this.thirdParty){
+                return true;
+            }
+        }
+        // return this.thirdParty && this.cookies.filter(cookie => cookie.identifying === true).length > 0
+    }
+
+    /**
+     * Checks if either the referer of a request is a tracker or if the request has been a redirect from a tracker
+     * If either is the case and the request itself is a tracking request, it is classified into Cat. II
+     */
+    isTrackingInitiatedByTracker() {
+        // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
+        if(this.category === Categories.BASICTRACKING){
+
+            // check both options for initiation
+            return this.isInitiatedByPredecessor.call(this);
+        }
+    }
+
+    /**
+     * Gets whole redirect chain unordered, and checks each element
+     * If any redirect domains in the redirect chain have been classified as a tracker, this request is a tracking
+     * request initiated by antoher tracker
+     */
+    isInitiatedByPredecessor() {
+        console.log("hello?")
+        if(this.predecessor){
+            console.log(this.predecessor.domain)
+            if (tabs[this.browserTabId].isTracker(this.predecessor.domain)) {
+                console.info("Redirect origin " + this.predecessor.domain + " for " + this.url + " is a tracker")
+                return true;
+            } else {
+                return this.predecessor.isInitiatedByPredecessor();
+            }
+        }
+    }
+
     setCookieSyncing() {
         let originRequest = this.getRedirectOrigin();
 
@@ -156,88 +215,17 @@ class WebRequest{
                 this.category = Categories["1st-SYNCING"];
             }
         } else if (this.isDirectInclusionFromDomain.call(this)) {
-            console.log(this.url)
             this.category = Categories["1st-SYNCING"];
         }
     }
 
     isDirectInclusionFromDomain() {
-        if(this.domain === "bing.com"){
-            console.log("checking direct inclusion")
-            console.log(this)
-            console.log(tabs[this.browserTabId].mainDomain.cookies)
-
-        }
         let mainCookies = tabs[this.browserTabId].mainDomain.cookies;
         for (let mainCookie of mainCookies) {
             if (!mainCookie.identifying) continue;
             for (let value of this.urlSearchParams.values()) {
                 if (this.isParamsEqual(value, mainCookie.value)) {
                     console.log("Found match from main domain " + value)
-                    return true;
-                }
-            }
-        }
-    }
-    setTrackingByTracker() {
-        if (this.isTrackingInitiatedByTracker()) {
-            this.category = Categories.TRACKINGBYTRACKER
-        }
-    }
-
-    setBasicTracking() {
-        if (this.isBasicTracking()) {
-            this.category = Categories.BASICTRACKING;
-            tabs[this.browserTabId].markDomainAsTracker(this.domain);
-        }
-    }
-
-    /**
-     * Category "Basic Tracking" is fulfilled when the request is a third party request and there are identifying cookies
-     */
-    isBasicTracking() {
-        return this.thirdParty && this.cookies.filter(cookie => cookie.identifying === true).length > 0
-    }
-
-    /**
-     * Checks if either the referer of a request is a tracker or if the request has been a redirect from a tracker
-     * If either is the case and the request itself is a tracking request, it is classified into Cat. II
-     */
-    isTrackingInitiatedByTracker() {
-        // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
-        if(this.category === Categories.BASICTRACKING){
-            // check both options for initiation
-            if(this.isInitiatedByReferer.call(this) || this.isInitiatedByRedirect.call(this)){
-                return true;
-            }
-        }
-    }
-
-    /**
-     * If the referal happens from another domain, it is checked if that domain is another tracker
-     */
-    isInitiatedByReferer() {
-        if (this.referer && this.domain !== this.referer) {
-            // TODO: refactor this into something with a consistent order
-            // if this is the first tracking request made from this domain, the domain has not yet been initialized
-            if (tabs[this.browserTabId].isTracker(this.referer)) {
-                console.info("Referer " + this.referer + " of " + this.url + " is tracker")
-                return true;
-            }
-        }
-    }
-
-    /**
-     * Gets whole redirect chain unordered, and checks each element
-     * If any redirect domains in the redirect chain have been classified as a tracker, this request is a tracking
-     * request initiated by antoher tracker
-     */
-    isInitiatedByRedirect() {
-        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
-        if(redirects){
-            for (const redirect of redirects) {
-                if (redirect.origin !== this.domain && tabs[this.browserTabId].isTracker(redirect.origin)) {
-                    console.info("Redirect origin " + redirect.origin + " for " + this.url + " is a tracker")
                     return true;
                 }
             }
@@ -252,11 +240,11 @@ class WebRequest{
      * @returns {undefined| WebRequest} the origin request of the cookie forwarded through URL parameters
      */
     getRedirectOrigin() {
-        if (this.redirectPredecessor) {
+        if (this.predecessor) {
             if(this.isCookieSendAsParam()){
-                return this.redirectPredecessor;
+                return this.predecessor;
             } else if (this.isParamsForwarded()){
-                return this.redirectPredecessor.getRedirectOrigin();
+                return this.predecessor.getRedirectOrigin();
             }
         }
     }
@@ -266,7 +254,7 @@ class WebRequest{
      * @returns {boolean}
      */
     isCookieSendAsParam(){
-        for(let predecessorCookie of this.redirectPredecessor.cookies){
+        for(let predecessorCookie of this.predecessor.cookies){
             if (!predecessorCookie.identifying) continue;
 
             for(let value of this.urlSearchParams.values()) {
@@ -285,7 +273,7 @@ class WebRequest{
      */
     isParamsForwarded(){
         for(let originalParam of this.urlSearchParams.values()) {
-            for(let predecessorParam of this.redirectPredecessor.urlSearchParams.values()){
+            for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.log("Forwarded parameter " + originalParam)
                     return true;
@@ -310,7 +298,7 @@ class WebRequest{
      * Gets from the stored redirects the reqeust that redirect to our request, if it exists
      * @returns {any}
      */
-    getRedirectPredecessor() {
+    getPredecessor() {
         let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
         if (redirects) {
             let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
@@ -361,11 +349,35 @@ class Response extends WebRequest{
             }
             // check both options for initiation
             // in the case of responses, the initiation happens for the corresponding request
-            if(this.isInitiatedByReferer.call(request) || this.isInitiatedByRedirect.call(request)){
+            if(this.isInitiatedByReferer.call(request) || this.isInitiatedByPredecessor.call(request)){
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Gets from the stored redirects the reqeust that redirect to our request, if it exists
+     * @returns {any}
+     */
+    getPredecessor() {
+        let request = tabs[this.browserTabId].getCorrespondingRequest(this.id, this.url);
+        if(!request){
+            console.warn("No corresponding request found for this response");
+            return;
+        }
+
+        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        if (redirects) {
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            if (directPredecessor) {
+                let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
+                return originRequest;
+            }
+        } else if(this.completeReferer){
+            let originRequest = tabs[this.browserTabId].getCorrespondingRequest(request.completeReferer) //here is the difference because im not sure if referer set in answer
+            return originRequest;
+        }
     }
 }
 

@@ -195,8 +195,10 @@ class TabInfo extends GenericTab{
         }
 
         function setBasicTracking() {
+            console.log(this.requests.length)
             for (let request of this.requests) {
-                request.setBasicTracking();
+                console.log(request.setBasicTracking())
+
             }
             for (let response of this.responses) {
                 response.setBasicTracking();
@@ -207,18 +209,18 @@ class TabInfo extends GenericTab{
             for (let request of this.requests) {
                 request.setTrackingByTracker();
             }
-            for (let response of this.responses) {
-                response.setTrackingByTracker();
-            }
+            // for (let response of this.responses) {
+            //     response.setTrackingByTracker();
+            // }
         }
 
         function setCookieSyncing() {
             for (let request of this.requests) {
                 request.setCookieSyncing();
             }
-            for (let response of this.responses) {
-                response.setCookieSyncing();
-            }
+            // for (let response of this.responses) {
+            //     response.setCookieSyncing();
+            // }
         }
 
         setIdentifyingCookies.call(this);
