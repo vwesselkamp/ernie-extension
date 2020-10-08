@@ -50,7 +50,7 @@ class WebRequest{
      */
     isThirdParty(){
         // compares request domain to main domain of the whole tab
-        return this.domain !== tabs[this.browserTabId].domain;
+        return this.domain !== browserTabs.getTab(this.browserTabId).domain;
     }
 
     /**
@@ -155,7 +155,7 @@ class WebRequest{
 
         if (request.isBasicTracking()) {
             request.category = Categories.BASICTRACKING;
-            tabs[request.browserTabId].markDomainAsTracker(request.domain);
+            browserTabs.getTab(request.browserTabId).markDomainAsTracker(request.domain);
             console.log(request.category)
             return false;
         }
@@ -189,7 +189,7 @@ class WebRequest{
     isInitiatedByPredecessor() {
         if(this.predecessor){
             console.log(this.predecessor.domain)
-            if (tabs[this.browserTabId].isTracker(this.predecessor.domain)) {
+            if (browserTabs.getTab(this.browserTabId).isTracker(this.predecessor.domain)) {
                 console.info("Redirect origin " + this.predecessor.domain + " for " + this.url + " is a tracker")
                 return true;
             } else {
@@ -228,7 +228,7 @@ class WebRequest{
     }
 
     isDirectInclusionFromDomain() {
-        let mainCookies = tabs[this.browserTabId].mainDomain.cookies;
+        let mainCookies = browserTabs.getTab(this.browserTabId).mainDomain.cookies;
         for (let mainCookie of mainCookies) {
             if (!mainCookie.identifying) continue;
             for (let value of this.urlSearchParams.values()) {
@@ -317,7 +317,7 @@ class WebRequest{
      * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
      */
     archive(){
-        tabs[this.browserTabId].storeWebRequest(this);
+        browserTabs.getTab(this.browserTabId).storeWebRequest(this);
     }
 
     /**
@@ -325,17 +325,17 @@ class WebRequest{
      * @returns {any}
      */
     getPredecessor() {
-        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        let redirects = browserTabs.getTab(this.browserTabId).getRedirectsIfExist(this.id);
         if (redirects) {
             let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
             if (directPredecessor) {
-                let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
+                let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
                 return originRequest;
             } else{
                 console.warn("Waht happened here")
             }
         } else if(this.completeReferer){
-            let originRequest = tabs[this.browserTabId].getCorrespondingRequest(this.completeReferer)
+            let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer)
             return  originRequest;
         }
     }
@@ -346,7 +346,7 @@ class WebRequest{
             if (attribute.name.toLowerCase() === "set-cookie") {
                 let cookies = this.parseSetCookie(attribute)
                 this.cookies.push(...cookies);
-                tabs[this.browserTabId].extendWebRequestCookies(this.domain, cookies)
+                browserTabs.getTab(this.browserTabId).extendWebRequestCookies(this.domain, cookies)
             }
         }
     }
@@ -379,21 +379,21 @@ class Response extends WebRequest{
      * @returns {any}
      */
     getPredecessor() {
-        let request = tabs[this.browserTabId].getCorrespondingRequest(this.url, this.id);
+        let request = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.url, this.id);
         if(!request){
             console.warn("No corresponding request found for this response");
             return;
         }
 
-        let redirects = tabs[this.browserTabId].getRedirectsIfExist(this.id);
+        let redirects = browserTabs.getTab(this.browserTabId).getRedirectsIfExist(this.id);
         if (redirects) {
             let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
             if (directPredecessor) {
-                let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
+                let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
                 return originRequest;
             }
         } else if(this.completeReferer){
-            let originRequest = tabs[this.browserTabId].getCorrespondingRequest(request.completeReferer) //here is the difference because im not sure if referer set in answer
+            let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(request.completeReferer) //here is the difference because im not sure if referer set in answer
             return originRequest;
         }
     }

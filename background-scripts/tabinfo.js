@@ -146,7 +146,7 @@ class TabInfo extends GenericTab{
                 return browser.tabs.hide(shadowTab.id); // this hides the tab
             }).then(shadowTab => {
                 console.info("Creating shadow Tab for " + this.url)
-                tabs[this.shadowTabId] = new ShadowTab(this.url, this.shadowTabId, this.tabId);
+                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId);
                 //update sets the url of the shadowTab to that of the original request
                 return browser.tabs.update(this.shadowTabId, {
                     url: this.url
@@ -201,7 +201,7 @@ class TabInfo extends GenericTab{
             console.log("Comparing now " + this.url)
 
             for (let domain of this.domains) {
-                let shadowDomain = tabs[this.shadowTabId].domains.find(sd => sd.name === domain.name)
+                let shadowDomain = browserTabs.getTab(this.shadowTabId).domains.find(sd => sd.name === domain.name)
                 if (shadowDomain) {
                     for (let cookie of domain.cookies) {
                         cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
@@ -216,13 +216,13 @@ class TabInfo extends GenericTab{
             for (let request of this.requests) {
                 if (request.isBasicTracking()) {
                     request.category = Categories.BASICTRACKING;
-                    tabs[request.browserTabId].markDomainAsTracker(request.domain);
+                    browserTabs.getTab(request.browserTabId).markDomainAsTracker(request.domain);
                 }
             }
             for (let response of this.responses) {
                 if (response.isBasicTracking()) {
                     response.category = Categories.BASICTRACKING;
-                    tabs[response.browserTabId].markDomainAsTracker(response.domain);
+                    browserTabs.getTab(response.browserTabId).markDomainAsTracker(response.domain);
                 }
             }
         }

@@ -56,9 +56,6 @@ function insertWebRequest(request) {
   let party = request.thirdParty ? "third" : "first";
   requestElement.className = request.category + " " + party + " url";
 
-  // if (request.party === "first") {
-  //   hideElement(requestElement);
-  // }
   return requestElement;
 }
 
@@ -111,12 +108,14 @@ function constructPage() {
     document.getElementById("response-urls").innerHTML = "";
 
     // inset all requests/responses collected so far
-    backgroundPage.tabs[backgroundPage.currentTab].requests.forEach((request) => insertRequest(request));
-    backgroundPage.tabs[backgroundPage.currentTab].responses.forEach((response) => insertResponse(response));
-    setStats(backgroundPage.tabs[backgroundPage.currentTab]);
+    backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
+    backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
+    setStats(backgroundPage.browserTabs.currentTab);
   }
 
-  let page = backgroundPage.tabs[backgroundPage.currentTab].domain;
+  // console.log(backgroundPage.browserTabs.gettTab(backgroundPage.currentTab))
+
+  let page = backgroundPage.browserTabs.currentTab.domain;
   // if in an administrative tab of firefox, or a newly opened one
   if(page == null){
     page = "Currently not a web page";
@@ -125,7 +124,7 @@ function constructPage() {
   document.getElementById("current-page").innerHTML = "Page: " + page
 
   // check if the analysis has already finished
-  if(backgroundPage.tabs[backgroundPage.currentTab].isEvaluated()){
+  if(backgroundPage.browserTabs.currentTab.isEvaluated()){
     constructAnalysis();
   } else {
     constructLoadingScreen();
@@ -153,6 +152,6 @@ function constructPageFromScratch() {
       .then(async (page) => {
         backgroundPage = page;
         // Set current tab in case the popup is opened without a tab being activated
-        backgroundPage.setCurrentTab().then(constructPage);
+        backgroundPage.browserTabs.setCurrentTab().then(constructPage);
       });
 }

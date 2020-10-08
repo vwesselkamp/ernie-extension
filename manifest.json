@@ -16,6 +16,7 @@
 
   "background": {
     "scripts": [
+      "background-scripts/tabs.js",
       "background-scripts/manage-tabs.js",
       "background-scripts/manage-requests.js",
       "background-scripts/webrequest.js",
