@@ -198,15 +198,17 @@ class WebRequest{
     }
 
     setCookieSyncing() {
+        if(!this.thirdParty) return;
         let originRequest = this.getRedirectOrigin();
 
         // todo: what about the parameters that are forwarded but never linked to cookies
+        // todo: also for 1st party syncing, does the synced-to url have to be identifying?
         if (originRequest) {
             if (originRequest.thirdParty) {
                 if (this.isBasicTracking()) {
                     this.category = Categories["3rd-SYNCING"];
                 } else {
-                    this.category = Categories.FORWARDING; //TODO: direct forwarding
+                    this.category = Categories.FORWARDING;
                 }
             } else {
                 this.category = Categories["1st-SYNCING"];
@@ -238,6 +240,10 @@ class WebRequest{
      */
     getRedirectOrigin() {
         if (this.predecessor) {
+            if(this.predecessor.thirdParty) {
+                console.warn("THIRD PARTY FORWARDER " + this.predecessor.url)
+                console.log(this.predecessor.predecessor)
+            }
             if(this.isCookieSendAsParam()){
                 return this.predecessor;
             } else if (this.isParamsForwarded()){
@@ -256,7 +262,7 @@ class WebRequest{
 
             for(let value of this.urlSearchParams.values()) {
                 if (this.isParamsEqual(value, predecessorCookie.value)) {
-                    console.log("FOUND ONE for " + this.url)
+                    console.log("FOUND ONE for " + this.url + "   " + value)
                     console.log(predecessorCookie);
                     return true;
                 }
@@ -280,8 +286,22 @@ class WebRequest{
     }
 
 
+    /**
+     * Cover cases the inclusion cases form Imanes paper
+     * identifier -> identifier
+     * *id* -> id
+     * id -> *id*
+     * for a minimum length of 4 and given that is isnt a boolean
+     * This method is used for both cookie to URL parameter as well as URL to URL comaprison
+     * @param originalParameterValue
+     * @param comparisonValue
+     * @returns {boolean}
+     */
     isParamsEqual(originalParameterValue, comparisonValue) {
-        return originalParameterValue === comparisonValue;
+        if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
+        if(originalParameterValue === true || originalParameterValue === false) return false;
+
+        return originalParameterValue.includes(comparisonValue) || comparisonValue.includes(originalParameterValue);
     }
 
     /**
@@ -302,6 +322,8 @@ class WebRequest{
             if (directPredecessor) {
                 let originRequest = tabs[this.browserTabId].getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
                 return originRequest;
+            } else{
+                console.warn("Waht happened here")
             }
         } else if(this.completeReferer){
             let originRequest = tabs[this.browserTabId].getCorrespondingRequest(this.completeReferer)
