@@ -21,12 +21,13 @@ function insertWebRequest(request) {
   function listCookies() {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
-    summary.innerText = request.id + " - " + request.domain + " : " + request.url;
+    summary.innerText = request.domain + " : " + request.url;
     requestElement.appendChild(summary)
 
     for (let cookie of request.cookies) {
       let cookieElement = document.createElement("div");
-      cookieElement.innerText = cookie.key + ": " + cookie.value;
+      let mode = cookie.mode ? "SEND" : "SET";
+      cookieElement.innerText = mode + " - " + cookie.key + ": " + cookie.value;
 
       let identifying = cookie.identifying ? "identifying" : "normal";
       let safe = cookie.safe ? "safe" : "normal";
@@ -38,7 +39,7 @@ function insertWebRequest(request) {
 
   function listOnlyUrl() {
     requestElement = document.createElement("div");
-    requestElement.innerText = request.id + " - " + request.domain + " : " + request.url;
+    requestElement.innerText = request.domain + " : " + request.url;
   }
 
   let requestElement;

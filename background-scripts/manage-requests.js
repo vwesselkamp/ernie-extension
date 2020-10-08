@@ -52,6 +52,7 @@ browser.webRequest.onSendHeaders.addListener(
  */
 function logResponse(responseDetails) {
     if(tabIsUndefined(responseDetails)) { return }
+    if(tabs[responseDetails.tabId].integrateResponse(responseDetails)) return;
     new Response(responseDetails);
 }
 

@@ -77,9 +77,9 @@ class WebRequest{
             for (let cookie of rawCookies) {
                 //trims of white spaces at the edges of the key, which are left over from the regex
                 if(cookie[1]){
-                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim()));
+                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim(), SEND));
                 } else {
-                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), ""));
+                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), "", SEND));
                 }
             }
         }
@@ -128,9 +128,9 @@ class WebRequest{
             result = result[0].split(/=(.+)/);
             try{
                 if(result[1]){
-                    collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim()));
+                    collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim(), SET));
                 } else {
-                    collectedCookies.push(new Cookie(this.url, result[0].trim(), ""));
+                    collectedCookies.push(new Cookie(this.url, result[0].trim(), "", SET));
                 }
             } catch (e){
                 console.warn(e);
@@ -240,13 +240,13 @@ class WebRequest{
      */
     getRedirectOrigin() {
         if (this.predecessor) {
-            if(this.predecessor.thirdParty) {
-                console.warn("THIRD PARTY FORWARDER " + this.predecessor.url)
-                console.log(this.predecessor.predecessor)
-            }
             if(this.isCookieSendAsParam()){
                 return this.predecessor;
             } else if (this.isParamsForwarded()){
+                if(this.predecessor.thirdParty) {
+                    console.warn("THIRD PARTY FORWARDER " + this.predecessor.url)
+                    console.log(this.url)
+                }
                 return this.predecessor.getRedirectOrigin();
             }
         }
@@ -262,8 +262,7 @@ class WebRequest{
 
             for(let value of this.urlSearchParams.values()) {
                 if (this.isParamsEqual(value, predecessorCookie.value)) {
-                    console.log("FOUND ONE for " + this.url + "   " + value)
-                    console.log(predecessorCookie);
+                    console.info("FOUND ONE for " + this.url + "   " + value)
                     return true;
                 }
             }
@@ -299,7 +298,8 @@ class WebRequest{
      */
     isParamsEqual(originalParameterValue, comparisonValue) {
         if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
-        if(originalParameterValue === true || originalParameterValue === false) return false;
+        if(originalParameterValue == true || originalParameterValue == false) return false;
+        if(comparisonValue == false || comparisonValue == true) return false;
 
         return originalParameterValue.includes(comparisonValue) || comparisonValue.includes(originalParameterValue);
     }
@@ -312,7 +312,7 @@ class WebRequest{
     }
 
     /**
-     * Gets from the stored redirects the reqeust that redirect to our request, if it exists
+     * Gets either the request that caused a redirect to our request, or the referer, if either of the two exist
      * @returns {any}
      */
     getPredecessor() {
@@ -328,6 +328,17 @@ class WebRequest{
         } else if(this.completeReferer){
             let originRequest = tabs[this.browserTabId].getCorrespondingRequest(this.completeReferer)
             return  originRequest;
+        }
+    }
+
+    integrateResponse(responseDetails){
+        if(!responseDetails.responseHeaders) return;
+        for (let attribute of responseDetails.responseHeaders){
+            if (attribute.name.toLowerCase() === "set-cookie") {
+                let cookies = this.parseSetCookie(attribute)
+                this.cookies.push(...cookies);
+                tabs[this.browserTabId].extendWebRequestCookies(this.domain, cookies)
+            }
         }
     }
 }
@@ -379,14 +390,17 @@ class Response extends WebRequest{
     }
 }
 
+let SEND = true;
+let SET = false;
 /**
  * Data about each cookie is stored in this class
  */
 class Cookie{
-    constructor (url, key, value) {
+    constructor (url, key, value, mode) {
         this.url = url; //string with all parameters
         this.key = key;
         this.value = value;
+        this.mode = mode;
         this.identifying = false; // cookie default to being non identifying
         this.safe = false; // cookies also default to non-safe until proven otherwise
     }

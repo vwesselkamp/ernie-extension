@@ -13,7 +13,7 @@ class GenericTab {
     /**
      * @param id of a response
      * @param url of the same response
-     * @returns the requests that belongs to the response
+     * @returns {WebRequest} the requests that belongs to the response
      */
     getCorrespondingRequest(url, id){
         if(id){
@@ -55,6 +55,11 @@ class GenericTab {
         domain.archive(request);
     }
 
+    extendWebRequestCookies(domainName, cookies){
+        let domain = this.upsertDomain(domainName);
+        domain.addCookies(cookies);
+    }
+
     markDomainAsTracker(domainName){
         let domain = this.upsertDomain(domainName)
         domain.setTracker(true);
@@ -79,6 +84,21 @@ class GenericTab {
         if(redirects.length > 0){
             return redirects;
         }
+    }
+
+    /**
+     * For a response integrate the cookies in the corresponding request if possible
+     * @param responseDetails
+     * @returns {boolean}
+     */
+    integrateResponse(responseDetails){
+        let request = this.getCorrespondingRequest(responseDetails.url, responseDetails.id);
+        if(!request){
+            console.warn("No corresponding request found for this response");
+            return false;
+        }
+        request.integrateResponse(responseDetails);
+        return true;
     }
 }
 
@@ -179,7 +199,6 @@ class TabInfo extends GenericTab{
          */
         function setIdentifyingCookies() {
             console.log("Comparing now " + this.url)
-            console.log(tabs[this.shadowTabId])
             if (this.domains.length !== tabs[this.shadowTabId].domains.length) console.warn("Unequal amount of domains found")
 
             for (let domain of this.domains) {
@@ -199,14 +218,12 @@ class TabInfo extends GenericTab{
                 if (request.isBasicTracking()) {
                     request.category = Categories.BASICTRACKING;
                     tabs[request.browserTabId].markDomainAsTracker(request.domain);
-                    console.log(request.category)
                 }
             }
             for (let response of this.responses) {
                 if (response.isBasicTracking()) {
                     response.category = Categories.BASICTRACKING;
                     tabs[response.browserTabId].markDomainAsTracker(response.domain);
-                    console.log(response.category)
                 }
             }
         }
@@ -237,12 +254,6 @@ class TabInfo extends GenericTab{
 
         this.evaluated = true;
         this.notifyPopupOfAnalysis()
-    }
-
-    assignResponses(){
-        for(let response of this.responses){
-            response.getPredecessorDelayed();
-        }
     }
 
     notifyPopupOfAnalysis() {
@@ -290,12 +301,19 @@ class Domain {
      * saves request/response in the corresponding array
      */
     archive(request){
-        this.cookies.push(...request.cookies)
+        this.addCookies(request.cookies);
         if (request instanceof Response){
             this.responses.push(request);
         } else if(request instanceof WebRequest){
             this.requests.push(request);
         }
+    }
+
+    /**
+     * @param cookies is an array of Cookie objects
+     */
+    addCookies(cookies) {
+        this.cookies.push(...cookies)
     }
 
     setTracker(value){

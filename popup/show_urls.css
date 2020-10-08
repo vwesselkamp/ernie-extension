@@ -50,12 +50,14 @@ html, body {
   background: none;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 140px;
-  width: 100%;
+  height: 200px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+#response-urls{
+  height: 100px;
+}
 .url{
   white-space: nowrap;
   margin-bottom: 1%;
