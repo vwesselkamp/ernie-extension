@@ -31,8 +31,8 @@ class WebRequest{
 
         // we process all information from headers and store the request
         // only later we can analyze it
-        this.extractFromHeader(comparisonCookies)
-        this.predecessor = this.getPredecessor()
+        this.extractFromHeader(comparisonCookies);
+        this.predecessor = this.getPredecessor();
         this.archive(this.browserTabId);
     }
 
@@ -148,11 +148,14 @@ class WebRequest{
         }
     }
 
-    setBasicTracking() {
-        if (this.isBasicTracking()) {
-            this.category = Categories.BASICTRACKING;
-            tabs[this.browserTabId].markDomainAsTracker(this.domain);
-            console.log(this.category)
+    setBasicTracking(request) {
+        console.log(request)
+        console.log(this)
+
+        if (request.isBasicTracking()) {
+            request.category = Categories.BASICTRACKING;
+            tabs[request.browserTabId].markDomainAsTracker(request.domain);
+            console.log(request.category)
             return false;
         }
     }
@@ -161,12 +164,7 @@ class WebRequest{
      * Category "Basic Tracking" is fulfilled when the request is a third party request and there are identifying cookies
      */
     isBasicTracking() {
-        for(let cookie of this.cookies){
-            if (cookie.identifying && this.thirdParty){
-                return true;
-            }
-        }
-        // return this.thirdParty && this.cookies.filter(cookie => cookie.identifying === true).length > 0
+        return this.thirdParty && this.cookies.filter(cookie => cookie.identifying === true).length > 0
     }
 
     /**
@@ -188,7 +186,6 @@ class WebRequest{
      * request initiated by antoher tracker
      */
     isInitiatedByPredecessor() {
-        console.log("hello?")
         if(this.predecessor){
             console.log(this.predecessor.domain)
             if (tabs[this.browserTabId].isTracker(this.predecessor.domain)) {
@@ -308,7 +305,7 @@ class WebRequest{
             }
         } else if(this.completeReferer){
             let originRequest = tabs[this.browserTabId].getCorrespondingRequest(this.completeReferer)
-            return originRequest;
+            return  originRequest;
         }
     }
 }
@@ -336,32 +333,11 @@ class Response extends WebRequest{
     }
 
     /**
-     * @override see checkTrackByTrack in WebRequest
-     */
-    isTrackingInitiatedByTracker() {
-        // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
-        if(this.category === Categories.BASICTRACKING){
-            // only proceed if corresponding request exists and can be evaluated
-            let request = tabs[this.browserTabId].getCorrespondingRequest(this.id, this.url);
-            if(!request){
-                console.warn("No corresponding request found for this response");
-                return false;
-            }
-            // check both options for initiation
-            // in the case of responses, the initiation happens for the corresponding request
-            if(this.isInitiatedByReferer.call(request) || this.isInitiatedByPredecessor.call(request)){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Gets from the stored redirects the reqeust that redirect to our request, if it exists
      * @returns {any}
      */
     getPredecessor() {
-        let request = tabs[this.browserTabId].getCorrespondingRequest(this.id, this.url);
+        let request = tabs[this.browserTabId].getCorrespondingRequest(this.url, this.id);
         if(!request){
             console.warn("No corresponding request found for this response");
             return;

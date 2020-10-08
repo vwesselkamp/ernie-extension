@@ -194,14 +194,20 @@ class TabInfo extends GenericTab{
             }
         }
 
-        function setBasicTracking() {
-            console.log(this.requests.length)
+        function basicTracking() {
             for (let request of this.requests) {
-                console.log(request.setBasicTracking())
-
+                if (request.isBasicTracking()) {
+                    request.category = Categories.BASICTRACKING;
+                    tabs[request.browserTabId].markDomainAsTracker(request.domain);
+                    console.log(request.category)
+                }
             }
             for (let response of this.responses) {
-                response.setBasicTracking();
+                if (response.isBasicTracking()) {
+                    response.category = Categories.BASICTRACKING;
+                    tabs[response.browserTabId].markDomainAsTracker(response.domain);
+                    console.log(response.category)
+                }
             }
         }
 
@@ -209,23 +215,23 @@ class TabInfo extends GenericTab{
             for (let request of this.requests) {
                 request.setTrackingByTracker();
             }
-            // for (let response of this.responses) {
-            //     response.setTrackingByTracker();
-            // }
+            for (let response of this.responses) {
+                response.setTrackingByTracker();
+            }
         }
 
         function setCookieSyncing() {
             for (let request of this.requests) {
                 request.setCookieSyncing();
             }
-            // for (let response of this.responses) {
-            //     response.setCookieSyncing();
-            // }
+            for (let response of this.responses) {
+                response.setCookieSyncing();
+            }
         }
 
         setIdentifyingCookies.call(this);
 
-        setBasicTracking.call(this);
+        basicTracking.call(this);
         setTrackingByTracker.call(this);
         setCookieSyncing.call(this);
 
@@ -233,7 +239,11 @@ class TabInfo extends GenericTab{
         this.notifyPopupOfAnalysis()
     }
 
-
+    assignResponses(){
+        for(let response of this.responses){
+            response.getPredecessorDelayed();
+        }
+    }
 
     notifyPopupOfAnalysis() {
         const sending = this.constructMessageToPopup();
