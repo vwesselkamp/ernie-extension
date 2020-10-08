@@ -199,7 +199,6 @@ class TabInfo extends GenericTab{
          */
         function setIdentifyingCookies() {
             console.log("Comparing now " + this.url)
-            if (this.domains.length !== tabs[this.shadowTabId].domains.length) console.warn("Unequal amount of domains found")
 
             for (let domain of this.domains) {
                 let shadowDomain = tabs[this.shadowTabId].domains.find(sd => sd.name === domain.name)

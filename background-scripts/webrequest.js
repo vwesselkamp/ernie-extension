@@ -9,7 +9,8 @@ var Categories = Object.freeze({
     "NONE":"nothing",
     "3rd-SYNCING":"third-syncing",
     "1st-SYNCING":"first-syncing",
-    "FORWARDING": "forwarding"
+    "FORWARDING": "forwarding",
+    "ANALYSIS": "analysis"
 })
 
 /**
@@ -204,17 +205,25 @@ class WebRequest{
         // todo: what about the parameters that are forwarded but never linked to cookies
         // todo: also for 1st party syncing, does the synced-to url have to be identifying?
         if (originRequest) {
-            if (originRequest.thirdParty) {
-                if (this.isBasicTracking()) {
+            if (originRequest.thirdParty && originRequest.domain !== this.domain) {
+                if (this.isBasicTracking.call(this)) {
                     this.category = Categories["3rd-SYNCING"];
                 } else {
                     this.category = Categories.FORWARDING;
                 }
             } else {
-                this.category = Categories["1st-SYNCING"];
+                if (this.isBasicTracking.call(this)) {
+                    this.category = Categories["1st-SYNCING"];
+                } else {
+                    this.category = Categories.ANALYSIS;
+                }
             }
         } else if (this.isDirectInclusionFromDomain.call(this)) {
-            this.category = Categories["1st-SYNCING"];
+            if (this.isBasicTracking.call(this)) {
+                this.category = Categories["1st-SYNCING"];
+            } else {
+                this.category = Categories.ANALYSIS;
+            }
         }
     }
 
@@ -224,7 +233,7 @@ class WebRequest{
             if (!mainCookie.identifying) continue;
             for (let value of this.urlSearchParams.values()) {
                 if (this.isParamsEqual(value, mainCookie.value)) {
-                    console.log("Found match from main domain " + value)
+                    console.info("Found match from main domain " + value)
                     return true;
                 }
             }
