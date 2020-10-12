@@ -259,6 +259,11 @@ class TabInfo extends GenericTab{
          * TODO: find out what to do with this
          */
         function logCookiesFromJavascript() {
+            function removeLeadingDots(domainName) {
+                while (domainName.charAt(0) === ".") domainName = domainName.substr(1);
+                return domainName;
+            }
+
             for(let domain of this.domains){
                 browser.cookies.getAll({
                     domain: domain.name
@@ -268,7 +273,8 @@ class TabInfo extends GenericTab{
                         if(!twin){
                             console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
                             console.log(domain.cookies)
-                            this.domains.upsertDomain(getSecondLevelDomainFromDomain(storageCookie.domain))
+                            let strippedDomainName = removeLeadingDots(storageCookie.domain);
+                            this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
                                 .addCookies([new Cookie(storageCookie.name, storageCookie.value, SET)])
                         }
                     }
