@@ -102,7 +102,15 @@ class GenericTab {
     }
 }
 
+/**
+ * Tab replicating behaviour of a regular tab in the background
+ */
 class ShadowTab extends GenericTab{
+    /**
+     * @param url{string}
+     * @param tabId{number}
+     * @param origin{number}
+     */
     constructor(url, tabId, origin) {
         super(url, tabId);
         this.originTab = origin;
@@ -245,6 +253,30 @@ class TabInfo extends GenericTab{
             }
         }
 
+        function logCookiesFromJavascript() {
+            for(let domain of this.domains){
+                browser.cookies.getAll({
+                    domain: domain.name
+                }).then(jsnCookies => {
+                    console.log("For domain " + domain.name + " #cookies: " + jsnCookies.length)
+                    for(let jsCookie of jsnCookies){
+                        let twin = domain.cookies.find(cookie => cookie.key === jsCookie.name);
+                        if(!twin){
+                            console.log("No corresponding cookie for \n " + JSON.stringify(jsCookie))
+                            console.log(domain.cookies)
+                            continue;
+                        }
+                        if(twin.value !== jsCookie.value){
+                            console.log("Different value for \n " + JSON.stringify(jsCookie) + "\n" + twin.value)
+
+                        }
+                    }
+                })
+            }
+        }
+
+
+        // logCookiesFromJavascript.call(this)
         setIdentifyingCookies.call(this);
 
         basicTracking.call(this);
@@ -253,6 +285,7 @@ class TabInfo extends GenericTab{
 
         this.evaluated = true;
         this.notifyPopupOfAnalysis()
+        console.log(this.redirects)
     }
 
     notifyPopupOfAnalysis() {

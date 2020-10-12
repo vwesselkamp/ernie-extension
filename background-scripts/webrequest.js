@@ -188,7 +188,6 @@ class WebRequest{
      */
     isInitiatedByPredecessor() {
         if(this.predecessor){
-            console.log(this.predecessor.domain)
             if (browserTabs.getTab(this.browserTabId).isTracker(this.predecessor.domain)) {
                 console.info("Redirect origin " + this.predecessor.domain + " for " + this.url + " is a tracker")
                 return true;
@@ -198,6 +197,24 @@ class WebRequest{
         }
     }
 
+    /**
+     * The last four categories only deviate very slightly, so they are differentiated in this method
+     * Lets say the chain is A.com -> X.com -> Y.com -> B.com/q?id=1234 , where we are analyzing B.com
+     * A.com hereby is the originRequest of the cookies transported in the URL of B.com, meaning the closest request  in
+     * the redirect/inclusion chain that owned the cookie of value 1234.
+     * In most cases, this request will be undefined
+     * If we have found such a request and it is a FIRST PARTY request there are two possibilities:
+     *  1. The request to B.com is also a tracking request, as it has an identifying cookie, then it is 1ST PARTY COOKIE SYNCING
+     *  2. The request is not tracking, and is therefore ANALYSIS
+     * If the originRequest is a THIRD PARTY request:
+     *  1. The request to B.com is also tracking, the it is 3RD PARTY COOKIE SYNCING
+     *  2. The request is not tracking, then it is FORWARDING
+     *
+     * If we don't find an origin request, that carried the cookie, we assume that the redirect/inclusion chain might have
+     * been interrupted by incorrect use of the referer header. Therefore we also test directly if the originRequest could be
+     * the main page, circumventing the redirection/inclusion chain and checking if any cookie from the main page can be found in the URL
+     * parameters.
+     */
     setCookieSyncing() {
         if(!this.thirdParty) return;
         let originRequest = this.getRedirectOrigin();
