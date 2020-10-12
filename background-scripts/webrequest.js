@@ -448,7 +448,8 @@ class Cookie{
     compareCookiesFromShadowRequest(comparisonCookies){
         for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
-                if (cookie.value !== this.value) {
+                // TODO: if cookie is safe there has been another version of the cookie with the same value.
+                if (cookie.value !== this.value && !this.safe) {
                     // console.info("Found id cookie for " + this.url + ": " + this.key);
                     this.identifying = true;
                 } else {

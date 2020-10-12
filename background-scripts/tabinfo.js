@@ -253,22 +253,23 @@ class TabInfo extends GenericTab{
             }
         }
 
+        /**
+         * If there are any cookies found in the cookie store at the end of a website loading, also store them in cookies
+         * Since the same thing is not done for the background request, this is really not very useful at the moment.
+         * TODO: find out what to do with this
+         */
         function logCookiesFromJavascript() {
             for(let domain of this.domains){
                 browser.cookies.getAll({
                     domain: domain.name
-                }).then(jsnCookies => {
-                    console.log("For domain " + domain.name + " #cookies: " + jsnCookies.length)
-                    for(let jsCookie of jsnCookies){
-                        let twin = domain.cookies.find(cookie => cookie.key === jsCookie.name);
+                }).then(storageCookies => {
+                    for(let storageCookie of storageCookies){
+                        let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
                         if(!twin){
-                            console.log("No corresponding cookie for \n " + JSON.stringify(jsCookie))
+                            console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
                             console.log(domain.cookies)
-                            continue;
-                        }
-                        if(twin.value !== jsCookie.value){
-                            console.log("Different value for \n " + JSON.stringify(jsCookie) + "\n" + twin.value)
-
+                            this.domains.upsertDomain(getSecondLevelDomainFromDomain(storageCookie.domain))
+                                .addCookies([new Cookie(storageCookie.name, storageCookie.value, SET)])
                         }
                     }
                 })
@@ -276,7 +277,7 @@ class TabInfo extends GenericTab{
         }
 
 
-        // logCookiesFromJavascript.call(this)
+        logCookiesFromJavascript.call(this)
         setIdentifyingCookies.call(this);
 
         basicTracking.call(this);
