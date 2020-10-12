@@ -324,7 +324,7 @@ class Domain {
     constructor(domain) {
         this.name = domain;
         this.tracker = false;
-        this.cookies = [];
+        this.cookies = new Set();
         this.requests = [];
         this.responses = [];
     }
@@ -342,13 +342,23 @@ class Domain {
     }
 
     /**
-     * @param cookies is an array of Cookie objects
+     * @param cookieArray{[Cookie]} is an array of Cookie objects
      */
-    addCookies(cookies) {
-        this.cookies.push(...cookies)
+    addCookies(cookieArray) {
+        for(let cookie of cookieArray){
+            this.cookies.add(cookie)
+        }
     }
 
     setTracker(value){
         this.tracker = value;
+    }
+
+    retrieveCookieIfExists(key, value){
+        for(let cookie of this.cookies.values()){
+            if(cookie.key === key && cookie.value === value){
+                return cookie;
+            }
+        }
     }
 }

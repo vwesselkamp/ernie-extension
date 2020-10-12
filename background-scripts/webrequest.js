@@ -78,9 +78,14 @@ class WebRequest{
             for (let cookie of rawCookies) {
                 //trims of white spaces at the edges of the key, which are left over from the regex
                 if(cookie[1]){
-                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), cookie[1].trim(), SEND));
+                    let existingCookie = browserTabs.getTab(this.browserTabId).upsertDomain(this.domain).retrieveCookieIfExists(cookie[0].trim(), cookie[1].trim())
+                    if(existingCookie){
+                        this.cookies.push(existingCookie)
+                    } else {
+                        this.cookies.push(new Cookie(cookie[0].trim(), cookie[1].trim(), SEND));
+                    }
                 } else {
-                    this.cookies.push(new Cookie(this.url, cookie[0].trim(), "", SEND));
+                    this.cookies.push(new Cookie(cookie[0].trim(), "", SEND));
                 }
             }
         }
@@ -129,9 +134,14 @@ class WebRequest{
             result = result[0].split(/=(.+)/);
             try{
                 if(result[1]){
-                    collectedCookies.push(new Cookie(this.url, result[0].trim(), result[1].trim(), SET));
+                    let existingCookie = browserTabs.getTab(this.browserTabId).upsertDomain(this.domain).retrieveCookieIfExists(result[0], result[1])
+                    if(existingCookie){
+                        collectedCookies.push(existingCookie)
+                    } else{
+                        collectedCookies.push(new Cookie(result[0].trim(), result[1].trim(), SET));
+                    }
                 } else {
-                    collectedCookies.push(new Cookie(this.url, result[0].trim(), "", SET));
+                    collectedCookies.push(new Cookie(result[0].trim(), "", SET));
                 }
             } catch (e){
                 console.warn(e);
@@ -422,8 +432,7 @@ let SET = false;
  * Data about each cookie is stored in this class
  */
 class Cookie{
-    constructor (url, key, value, mode) {
-        this.url = url; //string with all parameters
+    constructor (key, value, mode) {
         this.key = key;
         this.value = value;
         this.mode = mode;
@@ -440,7 +449,7 @@ class Cookie{
         for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
                 if (cookie.value !== this.value) {
-                    console.info("Found id cookie for " + this.url + ": " + this.key);
+                    // console.info("Found id cookie for " + this.url + ": " + this.key);
                     this.identifying = true;
                 } else {
                     this.safe = true;
