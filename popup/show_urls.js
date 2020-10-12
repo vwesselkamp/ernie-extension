@@ -113,12 +113,17 @@ function constructPage() {
     setStats(backgroundPage.browserTabs.currentTab);
   }
 
-  // console.log(backgroundPage.browserTabs.gettTab(backgroundPage.currentTab))
+
 
   let page = backgroundPage.browserTabs.currentTab.domain;
   // if in an administrative tab of firefox, or a newly opened one
   if(page == null){
     page = "Currently not a web page";
+  }
+
+  if(backgroundPage.browserTabs.currentTab.originTab){
+    document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
+    return;
   }
   // set page and clean content of the request/response windows
   document.getElementById("current-page").innerHTML = "Page: " + page
