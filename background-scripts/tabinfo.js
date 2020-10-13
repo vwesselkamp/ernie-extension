@@ -300,15 +300,7 @@ class TabInfo extends GenericTab{
 
         sending
             .then()
-            .catch(function (error) {
-                // All requests are send, but can only be received if popup is open. This error is a result of this.
-                // We can just drop it
-                if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                    return;
-                }
-                // Any error printed from here is likely because the popup expected another format from the message
-                console.error(error);
-            });
+            .catch(Tabs.onMessageRejected);
     }
 
     /**

@@ -85,17 +85,8 @@ class Tabs{
             browser.runtime.sendMessage({
                 reload: true
             })
-                // TODO: code duplication with webrequest class here
                 .then()
-                .catch(function (error) {
-                    // All requests are send, but can only be received if popup is open. This error is a result of this.
-                    // We can just drop it
-                    if(error.toString().includes("Could not establish connection. Receiving end does not exist.")){
-                        return;
-                    }
-                    // Any error printed from here is likely because the popup expected another format from the message
-                    console.error(error);
-                });
+                .catch(Tabs.onMessageRejected);
         }
 
         const getting = browser.tabs.get(details.tabId);
@@ -118,6 +109,16 @@ class Tabs{
 
             notifyPopupOfReload();
         })
+    }
+
+     static onMessageRejected(error) {
+        // All requests are send, but can only be received if popup is open. This error is a result of this.
+        // We can just drop it
+        if (error.toString().includes("Could not establish connection. Receiving end does not exist.")) {
+            return;
+        }
+        // Any error printed from here is likely because the popup expected another format from the message
+        console.error(error);
     }
 
     /**

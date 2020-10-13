@@ -119,7 +119,7 @@ class WebRequest{
      TODO: There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
      by a line break.
      * @param headerAttribute is the value of the header attribute
-     * @returns {[]} the cookies from this attribute
+     * @returns {[Cookie]} the cookies from this attribute
      */
     parseSetCookie(headerAttribute) {
         let collectedCookies = [];
@@ -159,6 +159,7 @@ class WebRequest{
         }
     }
 
+    //TODO:this
     setBasicTracking(request) {
         console.log(request)
         console.log(this)
