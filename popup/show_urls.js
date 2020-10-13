@@ -67,12 +67,12 @@ function insertResponse(response) {
 function setStats(tab){
   try{
     document.getElementById("requests").innerHTML = (tab.requests.length + tab.responses.length).toString();
-    document.getElementById("basic-tracking").innerHTML = (document.getElementsByClassName("tracking").length-1).toString();
-    document.getElementById("tracking-by-tracker").innerHTML = (document.getElementsByClassName("trackbytrack").length-1).toString();
-    document.getElementById("3rd-syncing").innerHTML = (document.getElementsByClassName("third-syncing").length-1).toString();
-    document.getElementById("1st-syncing").innerHTML = (document.getElementsByClassName("first-syncing").length-1).toString();
+    document.getElementById("basic-tracking").innerHTML = (document.getElementsByClassName("basic-tracking").length-1).toString();
+    document.getElementById("tracking-by-tracker").innerHTML = (document.getElementsByClassName("tracking-by-tracker").length-1).toString();
+    document.getElementById("third-syncing").innerHTML = (document.getElementsByClassName("third-syncing").length-1).toString();
+    document.getElementById("first-syncing").innerHTML = (document.getElementsByClassName("first-syncing").length-1).toString();
     document.getElementById("forwarding").innerHTML = (document.getElementsByClassName("forwarding").length-1).toString();
-    document.getElementById("analyser").innerHTML = (document.getElementsByClassName("analysis").length-1).toString();
+    document.getElementById("analysis").innerHTML = (document.getElementsByClassName("analysis").length-1).toString();
 
   } catch (e) {
     console.warn(e);
@@ -87,13 +87,13 @@ function constructPage() {
 
   function constructLoadingScreen() {
     document.getElementById("status").style.display = "block";
-    document.getElementById("analysis").style.display = "none";
+    document.getElementById("analyser").style.display = "none";
     setStats(backgroundPage.browserTabs.currentTab);
   }
 
   function constructAnalysis() {
     document.getElementById("status").style.display = "none";
-    document.getElementById("analysis").style.display = "block";
+    document.getElementById("analyser").style.display = "block";
 
     document.getElementById("request-urls").innerHTML = "";
     document.getElementById("response-urls").innerHTML = "";

@@ -147,7 +147,7 @@ class ShadowTab extends GenericTab{
  * From the request/response arrays I need the order of insertion for displaying, but the same requests are also saved
  * in the domains array under their respective domain.
  */
-class TabInfo extends GenericTab{
+class OriginTab extends GenericTab{
     constructor(url, tabId) {
         super(url, tabId);
         this.evaluated = false;
@@ -176,7 +176,7 @@ class TabInfo extends GenericTab{
             }).then(shadowTab => {
                 this.shadowTabId = shadowTab.id;
                 return browser.tabs.hide(shadowTab.id); // this hides the tab
-            }).then(shadowTab => {
+            }).then(() => {
                 console.info("Creating shadow Tab for " + this.url)
                 browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId);
                 //update sets the url of the shadowTab to that of the original request
@@ -190,7 +190,7 @@ class TabInfo extends GenericTab{
         }
 
         browser.contextualIdentities.create({
-            name: "extension-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
+            name: "shadow-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
             color: "purple", //these two attributes are meaningless to us
             icon: "briefcase"
           }).then(identity => {

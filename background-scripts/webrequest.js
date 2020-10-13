@@ -4,8 +4,8 @@
  * Needs to be a var to be accessible to the popup as well
  */
 var Categories = Object.freeze({
-    "BASICTRACKING":"tracking",
-    "TRACKINGBYTRACKER":"trackbytrack",
+    "BASICTRACKING":"basic-tracking",
+    "TRACKINGBYTRACKER":"tracking-by-tracker",
     "NONE":"nothing",
     "3rd-SYNCING":"third-syncing",
     "1st-SYNCING":"first-syncing",
@@ -18,7 +18,7 @@ var Categories = Object.freeze({
  * As there is no such thing as an abstract class in JS, the deviating methods for response are only overwritten
  */
 class WebRequest{
-    constructor(webRequest, comparisonCookies) {
+    constructor(webRequest) {
         this.url = webRequest.url; //string with all parameters
         this.browserTabId = webRequest.tabId; // id of the open browser tab
         this.id = webRequest.requestId;
@@ -68,7 +68,7 @@ class WebRequest{
      */
     findCookie(attribute){
         if (attribute.name.toLowerCase() === "cookie") {
-            // cookies are seperated by ; and the values defined after the first =
+            // cookies are separated by ; and the values defined after the first =
             // they cannot contain spaces or ;
             let rawCookies = attribute.value
                 .split(';')
@@ -114,7 +114,7 @@ class WebRequest{
      Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
      We are interested only in the first part which contains key=value; of the cookie
      Separate only at the first =
-     TODO: There seems to be the option to have several cookies in the same "set-cookies" attribute, seperated by a , or
+     TODO: There seems to be the option to have several cookies in the same "set-cookies" attribute, separated by a , or
      by a line break.
      * @param headerAttribute is the value of the header attribute
      * @returns {[Cookie]} the cookies from this attribute
@@ -193,7 +193,7 @@ class WebRequest{
     /**
      * Gets whole redirect chain unordered, and checks each element
      * If any redirect domains in the redirect chain have been classified as a tracker, this request is a tracking
-     * request initiated by antoher tracker
+     * request initiated by another tracker
      */
     isInitiatedByPredecessor() {
         if(this.predecessor){
@@ -321,8 +321,8 @@ class WebRequest{
      * *id* -> id
      * id -> *id*
      * id -> base64(id)
-     * for a minimum length of 4 and given that is isnt a boolean
-     * This method is used for both cookie to URL parameter as well as URL to URL comaprison
+     * for a minimum length of 4 and given that is isn't a boolean
+     * This method is used for both cookie to URL parameter as well as URL to URL comparison
      * @param originalParameterValue is always a URL parameter
      * @param comparisonValue is either a URL param or a cookie value
      * @returns {boolean}
@@ -406,8 +406,8 @@ class Response extends WebRequest{
     }
 
     /**
-     * Gets from the stored redirects the reqeust that redirect to our request, if it exists
-     * @returns {any}
+     * Gets from the stored redirects the request that redirect to our request, if it exists
+     * @returns {WebRequest|undefined}
      */
     getPredecessor() {
         let request = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.url, this.id);

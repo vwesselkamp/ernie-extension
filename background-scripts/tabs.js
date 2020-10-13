@@ -30,10 +30,10 @@ class Tabs{
     /**
      * @param url{string}
      * @param tabId
-     * @returns {TabInfo} that was created
+     * @returns {OriginTab} that was created
      */
     addTab(url, tabId){
-        this.tabs[tabId] = new TabInfo(url, tabId);
+        this.tabs[tabId] = new OriginTab(url, tabId);
         return this.tabs[tabId];
     }
 
@@ -57,7 +57,7 @@ class Tabs{
         if( browserTabId === -1 ) {
             return;
         }
-        // gets the information about our tab and initializes our own TabInfo object with it
+        // gets the information about our tab and initializes our own OriginTab object with it
         browser.tabs.get(browserTabId)
             .then((tab) => {
                 if(tab.cookieStoreId !== "firefox-default") {
@@ -74,7 +74,7 @@ class Tabs{
 
 
     /**
-     * Whenever we leave the current page, we throw out all old data and start with a new TabInfo object
+     * Whenever we leave the current page, we throw out all old data and start with a new OriginTab object
      * @param details
      */
     clearTabsData(details){
@@ -126,7 +126,7 @@ class Tabs{
      * @param tabId
      */
     removeContainer(tabId) {
-        if(this.tabExists(tabId) && this.tabs[tabId] instanceof TabInfo){
+        if(this.tabExists(tabId) && this.tabs[tabId] instanceof OriginTab){
             this.tabs[tabId].removeContainerIfExists();
         }
     }

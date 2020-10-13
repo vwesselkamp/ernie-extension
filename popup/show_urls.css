@@ -68,11 +68,11 @@ html, body {
   font-weight: bold;
 }
 
-.tracking {
+.basic-tracking {
   color: darkred;
 }
 
-.trackbytrack {
+.tracking-by-tracker {
   color: darkslateblue;
 }
 

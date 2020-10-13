@@ -23,7 +23,7 @@ browser.windows.onFocusChanged.addListener(browserTabs.setCurrentTab.bind(browse
 browser.contextualIdentities.query({})
     .then((identities) => {
         for (let identity of identities) {
-            if(identity.name.startsWith("extension")){
+            if(identity.name.startsWith("shadow")){
                 browser.contextualIdentities.remove(identity.cookieStoreId);
             }
         }
