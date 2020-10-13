@@ -183,8 +183,7 @@ class Tabs{
 
         // these leftover ones are often from bacground tabs that have not been initialized
         if(!this.tabExists(requestDetails.tabId)){
-            console.warn("Undefined tab for request " + requestDetails.url)
-            console.log(requestDetails)
+            console.warn("Undefined tab for request " + requestDetails.url + " of tab number " + requestDetails.tabId)
             return true;
         }
     }

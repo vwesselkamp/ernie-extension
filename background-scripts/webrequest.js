@@ -271,7 +271,6 @@ class WebRequest{
      * If the request is a result of a redirection, check first if the cookies of the redirecting request have been
      * set as an URL parameter. If not, but the Parameter also occurs in the redirecting requests URL, recursively check
      * that request as well.
-     * TODO: no solution for if the parameter is never linked to a cookie yet
      * @returns {undefined| WebRequest} the origin request of the cookie forwarded through URL parameters
      */
     getRedirectOrigin() {
@@ -279,10 +278,6 @@ class WebRequest{
             if(this.isCookieSendAsParam()){
                 return this.predecessor;
             } else if (this.isParamsForwarded()){
-                if(this.predecessor.thirdParty) {
-                    console.warn("THIRD PARTY FORWARDER " + this.predecessor.url)
-                    console.log(this.url)
-                }
                 return this.predecessor.getRedirectOrigin();
             }
         }
@@ -334,14 +329,15 @@ class WebRequest{
      */
     isParamsEqual(originalParameterValue, comparisonValue) {
         if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
-        if(originalParameterValue == true || originalParameterValue == false) return false;
-        if(comparisonValue == false || comparisonValue == true) return false;
+        if(originalParameterValue === true || originalParameterValue === false
+            ||comparisonValue === false || comparisonValue === true) return false;
 
         return originalParameterValue.includes(comparisonValue) || comparisonValue.includes(originalParameterValue);
     }
 
     /**
      * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
+     * //TODO: this
      */
     archive(){
         browserTabs.getTab(this.browserTabId).storeWebRequest(this);
@@ -376,6 +372,17 @@ class WebRequest{
                 browserTabs.getTab(this.browserTabId).extendWebRequestCookies(this.domain, cookies)
             }
         }
+    }
+
+    get content(){
+        return this.domain + " : " + this.url;
+    }
+
+    get className(){
+        // category = type of tracking
+        // party = first or third party request
+        let party = this.thirdParty ? "third" : "first";
+        return this.category + " " + party + " url";
     }
 }
 
@@ -432,6 +439,11 @@ let SET = false;
  * Data about each cookie is stored in this class
  */
 class Cookie{
+    /**
+     * @param key {string} also called name of the cookie
+     * @param value {string}
+     * @param mode {boolean} SET or SEND depending of origin
+     */
     constructor (key, value, mode) {
         this.key = key;
         this.value = value;
@@ -442,20 +454,34 @@ class Cookie{
 
     /**
      * For all the cookies from the background request, check if the key is the same (so same cookie)
-     * but value is different (so identifying possible)
-     * @param comparisonCookies from background reqeust
+     * but value is different (so identifying possible).
+     * As we save all versions of a cookie set by a webpage, two different versions are treated like two different cookies
+     * That means we compare this cookie isolated from other versions of it. Some versions of a cookie might therefore be
+     * categorized as identifying while others are not.
+     * @param comparisonCookies{[Cookie]} from background request
      */
     compareCookiesFromShadowRequest(comparisonCookies){
         for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
-                // TODO: if cookie is safe there has been another version of the cookie with the same value.
                 if (cookie.value !== this.value && !this.safe) {
                     // console.info("Found id cookie for " + this.url + ": " + this.key);
                     this.identifying = true;
                 } else {
                     this.safe = true;
+                    this.identifying = false;
                 }
             }
         }
+    }
+
+    get content(){
+        let mode = this.mode ? "SEND" : "SET";
+        return mode + " - " + this.key + ": " + this.value;
+    }
+
+    get className(){
+        let identifying = this.identifying ? "identifying" : "normal";
+        let safe = this.safe ? "safe" : "normal";
+        return "cookie " + identifying + " " + safe;
     }
 }

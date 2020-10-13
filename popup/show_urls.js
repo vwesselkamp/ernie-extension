@@ -9,7 +9,6 @@ let backgroundPage;
 
 /**
  * Constructs the HTML for a web request object
- * TODO: Pull this into the WebRequest class
  * @param request
  * @returns {*}
  */
@@ -21,25 +20,20 @@ function insertWebRequest(request) {
   function listCookies() {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
-    summary.innerText = request.domain + " : " + request.url;
+    summary.innerText = request.content;
     requestElement.appendChild(summary)
 
     for (let cookie of request.cookies) {
       let cookieElement = document.createElement("div");
-      let mode = cookie.mode ? "SEND" : "SET";
-      cookieElement.innerText = mode + " - " + cookie.key + ": " + cookie.value;
-
-      let identifying = cookie.identifying ? "identifying" : "normal";
-      let safe = cookie.safe ? "safe" : "normal";
-
-      cookieElement.className = "cookie " + identifying + " " + safe;
+      cookieElement.innerText = cookie.content;
+      cookieElement.className = cookie.className;
       requestElement.appendChild(cookieElement);
     }
   }
 
   function listOnlyUrl() {
     requestElement = document.createElement("div");
-    requestElement.innerText = request.domain + " : " + request.url;
+    requestElement.innerText = request.content;
   }
 
   let requestElement;
@@ -50,11 +44,7 @@ function insertWebRequest(request) {
   } else {
     listOnlyUrl();
   }
-
-  // category = type of tracking
-  // party = first or third party request
-  let party = request.thirdParty ? "third" : "first";
-  requestElement.className = request.category + " " + party + " url";
+  requestElement.className = request.className
 
   return requestElement;
 }
@@ -98,6 +88,7 @@ function constructPage() {
   function constructLoadingScreen() {
     document.getElementById("status").style.display = "block";
     document.getElementById("analysis").style.display = "none";
+    setStats(backgroundPage.browserTabs.currentTab);
   }
 
   function constructAnalysis() {
