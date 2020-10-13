@@ -86,6 +86,16 @@ class GenericTab {
         }
     }
 
+    createWebRequest(requestDetails){
+        let webRequest = new WebRequest(requestDetails);
+        this.storeWebRequest(webRequest);
+    }
+
+    createResponse(responseDetails){
+        let response = new Response(responseDetails);
+        this.storeWebRequest(response);
+    }
+
     /**
      * For a response integrate the cookies in the corresponding request if possible
      * @param responseDetails

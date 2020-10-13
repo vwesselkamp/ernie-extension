@@ -34,7 +34,6 @@ class WebRequest{
         // only later we can analyze it
         this.extractFromHeader(comparisonCookies);
         this.predecessor = this.getPredecessor();
-        this.archive(this.browserTabId);
     }
 
     /**
@@ -334,14 +333,6 @@ class WebRequest{
             ||comparisonValue === false || comparisonValue === true) return false;
 
         return originalParameterValue.includes(comparisonValue) || comparisonValue.includes(originalParameterValue);
-    }
-
-    /**
-     * Stores the constructed object in Tab object of the corresponding tab and forwards it to the popup if necessary
-     * //TODO: this
-     */
-    archive(){
-        browserTabs.getTab(this.browserTabId).storeWebRequest(this);
     }
 
     /**

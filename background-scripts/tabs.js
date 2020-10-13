@@ -165,7 +165,7 @@ class Tabs{
     logResponse(responseDetails) {
         if(this.tabIsUndefined(responseDetails)) { return }
         if(this.tabs[responseDetails.tabId].integrateResponse(responseDetails)) return;
-        new Response(responseDetails);
+        this.tabs[responseDetails.tabId].createResponse(responseDetails);
     }
 
     /**
@@ -174,7 +174,7 @@ class Tabs{
      */
     logRequest(requestDetails) {
         if(this.tabIsUndefined(requestDetails)) { return }
-        new WebRequest(requestDetails);
+        this.tabs[requestDetails.tabId].createWebRequest(requestDetails);
     }
 
     tabIsUndefined(requestDetails) {
