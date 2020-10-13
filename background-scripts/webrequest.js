@@ -320,10 +320,11 @@ class WebRequest{
      * identifier -> identifier
      * *id* -> id
      * id -> *id*
+     * id -> base64(id)
      * for a minimum length of 4 and given that is isnt a boolean
      * This method is used for both cookie to URL parameter as well as URL to URL comaprison
-     * @param originalParameterValue
-     * @param comparisonValue
+     * @param originalParameterValue is always a URL parameter
+     * @param comparisonValue is either a URL param or a cookie value
      * @returns {boolean}
      */
     isParamsEqual(originalParameterValue, comparisonValue) {
@@ -331,7 +332,12 @@ class WebRequest{
         if(originalParameterValue === true || originalParameterValue === false
             ||comparisonValue === false || comparisonValue === true) return false;
 
-        return originalParameterValue.includes(comparisonValue) || comparisonValue.includes(originalParameterValue);
+        if(originalParameterValue === btoa(comparisonValue)){
+            console.warn("Found b64 encoded param " + originalParameterValue + " from " + comparisonValue)
+        }
+        return originalParameterValue.includes(comparisonValue)
+            || comparisonValue.includes(originalParameterValue)
+            || originalParameterValue === btoa(comparisonValue);
     }
 
     /**
