@@ -1,5 +1,6 @@
 // triggered when a new tab is opened
 browser.tabs.onCreated.addListener((tab) => {
+    if(tab.url.startsWith("about:")) return;
   browserTabs.initializeCleanTab(tab.id);
 });
 
@@ -33,6 +34,7 @@ browserTabs.setCurrentTab()
     .then(() => browser.tabs.query({}))
     .then(tabs =>{
         for (let tab of tabs) {
+            console.log(tab.url)
             if(tab.url.startsWith("about:")) continue;
             browserTabs.initializeCleanTab(tab.id);
         }

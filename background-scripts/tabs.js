@@ -136,6 +136,8 @@ class Tabs{
      */
     evaluateTab(details){
         if (this.tabs[details.tabId] instanceof ShadowTab) {
+            this.tabs[this.tabs[details.tabId].originTab].evaluateRequests();
+            //do it again after 2 seconds
             setTimeout(() => {
                 this.tabs[this.tabs[details.tabId].originTab].evaluateRequests();
             }, 2000);
