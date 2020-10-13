@@ -1,7 +1,32 @@
-let mongoDBUser = 'admin';
-let mongoDBPassword = 'secret';
-let mongoDBLocation = "http://localhost:8080/extension";
+let mongoDBUser;
+let mongoDBPassword;
+let mongoDBLocation;
 let mongoDBAccess = false;
+
+/**
+ * Sets the vars we need to access the DB by retrieving them from the local storage
+ */
+function setDatabaseAccess() {
+    var location = browser.storage.local.get('location');
+    location.then((res) => {
+        mongoDBLocation = res.location || 'http://localhost:8080/extension';
+    });
+
+    var user = browser.storage.local.get('user');
+    user.then((res) => {
+        mongoDBUser = res.user || 'admin';
+        console.log(mongoDBUser)
+    });
+
+    var password = browser.storage.local.get('password');
+    password.then((res) => {
+        mongoDBPassword = res.password || 'secret';
+    });
+}
+browser.storage.onChanged.addListener(setDatabaseAccess);
+
+setDatabaseAccess();
+
 fetch("http://localhost:8080/ping")
     .then(response => response.text())
     .then(text => {
