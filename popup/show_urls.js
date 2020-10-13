@@ -62,6 +62,7 @@ function insertResponse(response) {
 
 /**
  * Sets the statistics shown on the top of the popup
+ * -1 so that the stat counter itself is not also counted
  * @param tab
  */
 function setStats(tab){
