@@ -25,21 +25,20 @@ class WebRequest{
         this.domain = getSecondLevelDomainFromUrl(webRequest.url); //inline?
         //not possible to inline this, because when sending it as a runtime message to the popup script, the methods are no longer available
         this.thirdParty = this.isThirdParty();
-        this.header = this.setHeader(webRequest);
         this.cookies = [];
         this.category = Categories.NONE;
         this.urlSearchParams = (new URL(this.url)).searchParams
 
         // we process all information from headers and store the request
         // only later we can analyze it
-        this.extractFromHeader(comparisonCookies);
+        this.extractFromHeader(this.getHeader(webRequest));
         this.predecessor = this.getPredecessor();
     }
 
     /**
      * this is here so it can be overwritten for the Response Class, where the header attribute is named differently
      */
-    setHeader(webRequest) {
+    getHeader(webRequest) {
         return webRequest.requestHeaders;
     }
 
@@ -55,8 +54,8 @@ class WebRequest{
     /**
      * Parses each header attribute and extracts the relevant ones
      */
-    extractFromHeader() {
-        for (let attribute of this.header){
+    extractFromHeader(header) {
+        for (let attribute of header){
             this.findCookie(attribute);
             this.findContentType(attribute);
             this.findReferer(attribute);
@@ -386,7 +385,7 @@ class Response extends WebRequest{
     /**
      * header attribute is called responseHeaders in responses
      */
-    setHeader(webRequest) {
+    getHeader(webRequest) {
         return webRequest.responseHeaders;
     }
 

@@ -1,3 +1,16 @@
+let mongoDBUser = 'admin';
+let mongoDBPassword = 'secret';
+let mongoDBLocation = "http://localhost:8080/extension";
+let mongoDBAccess = false;
+fetch("http://localhost:8080/ping")
+    .then(response => response.text())
+    .then(text => {
+        if(text.includes("Greetings from RESTHeart!")){
+            mongoDBAccess = true;
+            console.log("MongoDB accessible")
+        }
+    });
+
 class GenericTab {
     constructor(url, tabId) {
         this.url = url;
@@ -138,6 +151,7 @@ class TabInfo extends GenericTab{
     constructor(url, tabId) {
         super(url, tabId);
         this.evaluated = false;
+        this._id = Date.now();
         this.createContainer();
     }
 
@@ -302,7 +316,22 @@ class TabInfo extends GenericTab{
 
         this.evaluated = true;
         this.notifyPopupOfAnalysis()
-        console.log(this.redirects)
+        this.sendTabToDB();
+
+    }
+
+    sendTabToDB() {
+        if(!mongoDBAccess) return;
+        console.log("Sending TAb with ID " + this._id)
+        let headers = new Headers();
+        headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
+        headers.set('Content-Type', 'application/json');
+
+        fetch(mongoDBLocation, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(this)
+        })
     }
 
     notifyPopupOfAnalysis() {
