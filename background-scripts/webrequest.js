@@ -33,6 +33,7 @@ class WebRequest{
         // only later we can analyze it
         this.extractFromHeader(this.getHeader(webRequest));
         this.predecessor = this.getPredecessor();
+
     }
 
     /**
@@ -40,10 +41,12 @@ class WebRequest{
      * @returns {[]}
      */
     extractURLParams() {
-        let params = (new URL(this.url)).searchParams.values();
+        let params = (new URL(this.url)).searchParams;
         let splitParams = [];
-        for(let param of params){
-            let result = param.split(/[^a-zA-Z0-9-_.]/);
+        for(let [key, value] of params){
+            if(key.includes("google_nid")) console.log("GOOGLE_NID in the key")
+            if(value.includes("google_nid")) console.log("GOOGLE_NID in the value")
+            let result = value.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
         return splitParams;
@@ -240,10 +243,18 @@ class WebRequest{
      */
     setCookieSyncing() {
         if(!this.thirdParty) return;
-        let originRequest = this.getRedirectOrigin();
 
+        if(this.isEncryptedSharing()){
+            if (this.isBasicTracking.call(this)) {
+                this.category = Categories["3rd-SYNCING"];
+            } else {
+                this.category = Categories.FORWARDING;
+            }
+            return
+        }
+
+        let originRequest = this.getRedirectOrigin();
         // todo: what about the parameters that are forwarded but never linked to cookies
-        // todo: also for 1st party syncing, does the synced-to url have to be identifying?
         if (originRequest) {
             if (originRequest.thirdParty && originRequest.domain !== this.domain) {
                 if (this.isBasicTracking.call(this)) {
@@ -258,7 +269,7 @@ class WebRequest{
                     this.category = Categories.ANALYTICS;
                 }
             }
-        } else if (this.isDirectInclusionFromDomain.call(this)) {
+        }  else if (this.isDirectInclusionFromDomain.call(this)) {
             if (this.isBasicTracking.call(this)) {
                 this.category = Categories["1st-SYNCING"];
             } else {
@@ -270,7 +281,6 @@ class WebRequest{
     isDirectInclusionFromDomain() {
         let mainCookies = browserTabs.getTab(this.browserTabId).mainDomain.cookies;
         if(this.isCookieSendAsParam(mainCookies)){
-            console.log("YES")
             return true;
         }
     }
@@ -392,6 +402,17 @@ class WebRequest{
         // party = first or third party request
         let party = this.thirdParty ? "third" : "first";
         return this.category + " " + party + " url";
+    }
+
+    isEncryptedSharing() {
+        if(this.predecessor && this.domain !== "doubleclick.net"){
+            if(this.predecessor.domain === "doubleclick.net"){
+                if(this.predecessor.urlSearchParams.includes("google_nid")){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
