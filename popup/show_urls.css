@@ -62,7 +62,6 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   height: 200px;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -72,6 +71,9 @@ html, body {
 .url{
   white-space: nowrap;
   margin-bottom: 1%;
+  margin-right: 10px;
+  overflow:hidden;
+  text-overflow: ellipsis;
 
 }
 
@@ -89,6 +91,8 @@ html, body {
 
 .cookie{
   font-weight: normal;
+  overflow:hidden;
+  text-overflow: ellipsis;
 }
 
 .identifying{

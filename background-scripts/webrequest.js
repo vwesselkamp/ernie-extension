@@ -402,7 +402,7 @@ class WebRequest{
         // category = type of tracking
         // party = first or third party request
         let party = this.thirdParty ? "third" : "first";
-        return this.category + " " + party + " url";
+        return this.category + " " + party;
     }
 
     isEncryptedSharing() {

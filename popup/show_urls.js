@@ -21,6 +21,7 @@ function insertWebRequest(request) {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
     summary.innerText = request.content;
+    summary.className = "url "
     requestElement.appendChild(summary)
 
     for (let cookie of request.cookies) {
@@ -34,6 +35,7 @@ function insertWebRequest(request) {
   function listOnlyUrl() {
     requestElement = document.createElement("div");
     requestElement.innerText = request.content;
+    requestElement.className = "url "
   }
 
   let requestElement;
@@ -44,7 +46,7 @@ function insertWebRequest(request) {
   } else {
     listOnlyUrl();
   }
-  requestElement.className = request.className
+  requestElement.className += request.className
 
   return requestElement;
 }
