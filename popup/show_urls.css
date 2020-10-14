@@ -71,10 +71,13 @@ html, body {
 .url{
   white-space: nowrap;
   margin-bottom: 1%;
-  margin-right: 10px;
+  margin-right: 20px;
   overflow:hidden;
   text-overflow: ellipsis;
+}
 
+.url:hover {
+  white-space: initial;
 }
 
 .third {
@@ -93,8 +96,12 @@ html, body {
   font-weight: normal;
   overflow:hidden;
   text-overflow: ellipsis;
+  margin-right: 20px;
 }
 
+.cookie:hover{
+  white-space: initial;
+}
 .identifying{
   font-weight: bold;
 }
