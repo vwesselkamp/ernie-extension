@@ -80,69 +80,87 @@ function setStats(tab){
   }
 }
 
+function constructLoadingScreen() {
+  document.getElementById("status").style.display = "block";
+  document.getElementById("analyser").style.display = "none";
+}
+
+/**
+ * To fill in the content of the popup, clean all leftovers from previous page loads and set the new content
+ */
+function constructAnalysis() {
+  document.getElementById("status").style.display = "none";
+  document.getElementById("analyser").style.display = "block";
+
+  document.getElementById("request-urls").innerHTML = "";
+  document.getElementById("response-urls").innerHTML = "";
+
+  // inset all requests/responses collected so far
+  backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
+  backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
+}
+
+
+function constructHeader() {
+  let page = backgroundPage.browserTabs.currentTab.domain;
+  // if in an administrative tab of firefox, or a newly opened one
+  if(page == null){
+    page = "Currently not a web page";
+  }
+
+  // if shadowTabId exists, it is a OriginTab. Instanceof does not work for some reason
+  if(backgroundPage.browserTabs.currentTab.shadowTabId){
+    // set page and clean content of the request/response windows
+    document.getElementById("current-page").innerHTML = "Page: " + page
+    document.getElementById("button").innerText = "Show Shadow Tab"
+  } else {
+    document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
+    document.getElementById("button").innerText = "Hide Shadow Tab"
+  }
+}
+
+/**
+ * For the shadow tabs hide the analysis section and display all the requests immediatly, in the assumption that the
+ * popup in the shadow tab is only opened quite late
+ * For the origin tab show the analysis section and either fill in the content or set a loading screen.
+ */
+function constructContent() {
+  function constructShadowContent() {
+    document.getElementById("origin").style.visibility = "hidden";
+    // check if the analysis has already finished
+    constructAnalysis();
+  }
+
+  function constructOriginContent() {
+    // check if the analysis has already finished
+    document.getElementById("origin").style.visibility = "visible";
+
+    if (backgroundPage.browserTabs.currentTab.isEvaluated()) {
+      constructAnalysis();
+      setStats(backgroundPage.browserTabs.currentTab);
+    } else {
+      constructLoadingScreen();
+      setStats(backgroundPage.browserTabs.currentTab);
+    }
+  }
+
+  if(backgroundPage.browserTabs.currentTab.shadowTabId){
+    constructOriginContent();
+  } else{
+    constructShadowContent();
+  }
+}
+
 /**
  * Sets up the Popup page from scratch each time the popup is opened or the window is reloaded
  * If the analysis of the page has been finished it is inserted, else there is only the waiting screen
  */
 function constructPage() {
+  backgroundPage.browserTabs.setCurrentTab().then(()=>{
+    constructHeader()
 
-  function constructLoadingScreen() {
-    document.getElementById("status").style.display = "block";
-    document.getElementById("analyser").style.display = "none";
-  }
-
-  function constructAnalysis() {
-    document.getElementById("status").style.display = "none";
-    document.getElementById("analyser").style.display = "block";
-
-    document.getElementById("request-urls").innerHTML = "";
-    document.getElementById("response-urls").innerHTML = "";
-
-    // inset all requests/responses collected so far
-    backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
-    backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
-  }
-
-
-  function constructHeader() {
-    let page = backgroundPage.browserTabs.currentTab.domain;
-    // if in an administrative tab of firefox, or a newly opened one
-    if(page == null){
-      page = "Currently not a web page";
-    }
-
-    if(backgroundPage.browserTabs.currentTab.originTab){
-      document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
-      document.getElementById("button").innerText = "Hide Shadow Tab"
-    } else{
-      // set page and clean content of the request/response windows
-      document.getElementById("current-page").innerHTML = "Page: " + page
-      document.getElementById("button").innerText = "Show Shadow Tab"
-    }
-  }
-
-  function constructMiddle() {
-    if(backgroundPage.browserTabs.currentTab.originTab){
-      document.getElementById("origin").style.visibility = "hidden";
-      // check if the analysis has already finished
-      constructAnalysis();
-    } else{
-      // check if the analysis has already finished
-      document.getElementById("origin").style.visibility = "visible";
-
-      if(backgroundPage.browserTabs.currentTab.isEvaluated()){
-        constructAnalysis();
-        setStats(backgroundPage.browserTabs.currentTab);
-      } else {
-        constructLoadingScreen();
-        setStats(backgroundPage.browserTabs.currentTab);
-      }
-    }
-  }
-
-  constructHeader()
-
-  constructMiddle()
+    constructContent()
+  });
 }
 
 /**
@@ -150,8 +168,7 @@ function constructPage() {
  */
 function evaluateMessage(message) {
   if (message.analysis) {
-    backgroundPage.browserTabs.setCurrentTab().then(constructPage);
-
+    constructPage()
   } else if (message.reload) {
     constructPage();
   }
