@@ -10,7 +10,7 @@ var Categories = Object.freeze({
     "3rd-SYNCING":"third-syncing",
     "1st-SYNCING":"first-syncing",
     "FORWARDING": "forwarding",
-    "ANALYSIS": "analysis"
+    "ANALYTICS": "analytics"
 })
 
 /**
@@ -27,12 +27,26 @@ class WebRequest{
         this.thirdParty = this.isThirdParty();
         this.cookies = [];
         this.category = Categories.NONE;
-        this.urlSearchParams = (new URL(this.url)).searchParams
+        this.urlSearchParams = this.extractURLParams()
 
         // we process all information from headers and store the request
         // only later we can analyze it
         this.extractFromHeader(this.getHeader(webRequest));
         this.predecessor = this.getPredecessor();
+    }
+
+    /**
+     * We split the URL parameters at any character not in the regex below, because they are assumed to be delimiters
+     * @returns {[]}
+     */
+    extractURLParams() {
+        let params = (new URL(this.url)).searchParams.values();
+        let splitParams = [];
+        for(let param of params){
+            let result = param.split(/[^a-zA-Z0-9-_.]/);
+            splitParams.push(...result);
+        }
+        return splitParams;
     }
 
     /**
@@ -214,7 +228,7 @@ class WebRequest{
      * In most cases, this request will be undefined
      * If we have found such a request and it is a FIRST PARTY request there are two possibilities:
      *  1. The request to B.com is also a tracking request, as it has an identifying cookie, then it is 1ST PARTY COOKIE SYNCING
-     *  2. The request is not tracking, and is therefore ANALYSIS
+     *  2. The request is not tracking, and is therefore ANALYTICS
      * If the originRequest is a THIRD PARTY request:
      *  1. The request to B.com is also tracking, the it is 3RD PARTY COOKIE SYNCING
      *  2. The request is not tracking, then it is FORWARDING
@@ -241,28 +255,23 @@ class WebRequest{
                 if (this.isBasicTracking.call(this)) {
                     this.category = Categories["1st-SYNCING"];
                 } else {
-                    this.category = Categories.ANALYSIS;
+                    this.category = Categories.ANALYTICS;
                 }
             }
         } else if (this.isDirectInclusionFromDomain.call(this)) {
             if (this.isBasicTracking.call(this)) {
                 this.category = Categories["1st-SYNCING"];
             } else {
-                this.category = Categories.ANALYSIS;
+                this.category = Categories.ANALYTICS;
             }
         }
     }
 
     isDirectInclusionFromDomain() {
         let mainCookies = browserTabs.getTab(this.browserTabId).mainDomain.cookies;
-        for (let mainCookie of mainCookies) {
-            if (!mainCookie.identifying) continue;
-            for (let value of this.urlSearchParams.values()) {
-                if (this.isParamsEqual(value, mainCookie.value)) {
-                    console.info("Found match from main domain " + value)
-                    return true;
-                }
-            }
+        if(this.isCookieSendAsParam(mainCookies)){
+            console.log("YES")
+            return true;
         }
     }
 
@@ -274,7 +283,7 @@ class WebRequest{
      */
     getRedirectOrigin() {
         if (this.predecessor) {
-            if(this.isCookieSendAsParam()){
+            if(this.isCookieSendAsParam(this.predecessor.cookies)){
                 return this.predecessor;
             } else if (this.isParamsForwarded()){
                 return this.predecessor.getRedirectOrigin();
@@ -286,14 +295,17 @@ class WebRequest{
      * the cookie of the request that redirected to our request of interest is send as Url Parameter
      * @returns {boolean}
      */
-    isCookieSendAsParam(){
-        for(let predecessorCookie of this.predecessor.cookies){
+    isCookieSendAsParam(predecessorCookies){
+        for(let predecessorCookie of predecessorCookies){
             if (!predecessorCookie.identifying) continue;
 
-            for(let value of this.urlSearchParams.values()) {
-                if (this.isParamsEqual(value, predecessorCookie.value)) {
-                    console.info("FOUND ONE for " + this.url + "   " + value)
-                    return true;
+            let splitCookie = predecessorCookie.value.split(/[^a-zA-Z0-9-_.]/);
+            for(let split of splitCookie){
+                for(let value of this.urlSearchParams.values()) {
+                    if (this.isParamsEqual(value, split)) {
+                        console.info("FOUND ONE for " + this.url + "   " + value)
+                        return true;
+                    }
                 }
             }
         }
