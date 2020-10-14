@@ -73,7 +73,7 @@ function setStats(tab){
     document.getElementById("third-syncing").innerHTML = (document.getElementsByClassName("third-syncing").length-1).toString();
     document.getElementById("first-syncing").innerHTML = (document.getElementsByClassName("first-syncing").length-1).toString();
     document.getElementById("forwarding").innerHTML = (document.getElementsByClassName("forwarding").length-1).toString();
-    document.getElementById("analysis").innerHTML = (document.getElementsByClassName("analysis").length-1).toString();
+    document.getElementById("analytics").innerHTML = (document.getElementsByClassName("analytics").length-1).toString();
 
   } catch (e) {
     console.warn(e);
@@ -89,7 +89,6 @@ function constructPage() {
   function constructLoadingScreen() {
     document.getElementById("status").style.display = "block";
     document.getElementById("analyser").style.display = "none";
-    setStats(backgroundPage.browserTabs.currentTab);
   }
 
   function constructAnalysis() {
@@ -102,30 +101,48 @@ function constructPage() {
     // inset all requests/responses collected so far
     backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
     backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
-    setStats(backgroundPage.browserTabs.currentTab);
   }
 
 
+  function constructHeader() {
+    let page = backgroundPage.browserTabs.currentTab.domain;
+    // if in an administrative tab of firefox, or a newly opened one
+    if(page == null){
+      page = "Currently not a web page";
+    }
 
-  let page = backgroundPage.browserTabs.currentTab.domain;
-  // if in an administrative tab of firefox, or a newly opened one
-  if(page == null){
-    page = "Currently not a web page";
+    if(backgroundPage.browserTabs.currentTab.originTab){
+      document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
+      document.getElementById("button").innerText = "Hide Shadow Tab"
+    } else{
+      // set page and clean content of the request/response windows
+      document.getElementById("current-page").innerHTML = "Page: " + page
+      document.getElementById("button").innerText = "Show Shadow Tab"
+    }
   }
 
-  if(backgroundPage.browserTabs.currentTab.originTab){
-    document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
-    return;
-  }
-  // set page and clean content of the request/response windows
-  document.getElementById("current-page").innerHTML = "Page: " + page
+  function constructMiddle() {
+    if(backgroundPage.browserTabs.currentTab.originTab){
+      document.getElementById("origin").style.visibility = "hidden";
+      // check if the analysis has already finished
+      constructAnalysis();
+    } else{
+      // check if the analysis has already finished
+      document.getElementById("origin").style.visibility = "visible";
 
-  // check if the analysis has already finished
-  if(backgroundPage.browserTabs.currentTab.isEvaluated()){
-    constructAnalysis();
-  } else {
-    constructLoadingScreen();
+      if(backgroundPage.browserTabs.currentTab.isEvaluated()){
+        constructAnalysis();
+        setStats(backgroundPage.browserTabs.currentTab);
+      } else {
+        constructLoadingScreen();
+        setStats(backgroundPage.browserTabs.currentTab);
+      }
+    }
   }
+
+  constructHeader()
+
+  constructMiddle()
 }
 
 /**
@@ -133,7 +150,8 @@ function constructPage() {
  */
 function evaluateMessage(message) {
   if (message.analysis) {
-    constructPageFromScratch();
+    backgroundPage.browserTabs.setCurrentTab().then(constructPage);
+
   } else if (message.reload) {
     constructPage();
   }
@@ -154,10 +172,22 @@ function constructPageFromScratch() {
 }
 
 function handleButtonClick(event) {
-  console.log("EVENT")
-  let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
-  browser.tabs.update(shadowTabId, { active: true})
-      .then(()=>constructPageFromScratch());
+  if(backgroundPage.browserTabs.currentTab.originTab) {
+    let tabID = backgroundPage.browserTabs.currentTab.tabId;
+    console.log(tabID)
+    let parentTabId = backgroundPage.browserTabs.currentTab.originTab;
+    browser.tabs.update(parentTabId, { active: true})
+        .then(()=>{
+          browser.tabs.hide(tabID).then(()=> {
+            constructPageFromScratch()
+          });
+        });
+
+  } else {
+    let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
+    browser.tabs.update(shadowTabId, { active: true})
+        .then(()=>constructPageFromScratch());
+  }
 }
 
 document.getElementById("button").addEventListener("click", handleButtonClick);

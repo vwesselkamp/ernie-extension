@@ -11,9 +11,9 @@
   <div class="header">
   <!--  <p class= "name" id="popup-title"> All Requests</p>-->
     <div class="inner"><p class= "page" id="current-page"> Page: </p></div>
-    <div class="inner" id="button"><button>Show Shadow Tab</button></div>
+    <div class="inner" id="button-container"><button type="button" id="button">Show Shadow Tab</button></div>
   </div>
-  <div class="statistics">
+  <div class="statistics" id="origin">
     <div class="stat-container">
       <p class= "stat"> Number of Requests:</p>
       <p class= "counter" id="requests"> 0</p>
@@ -31,8 +31,8 @@
       <p class= "counter" id="first-syncing"> 0</p>
     </div>
     <div class="stat-container">
-      <p class= "stat analysis"> Analysis: </p>
-      <p class= "counter" id="analysis"> 0 </p>
+      <p class= "stat analytics"> Analysis: </p>
+      <p class= "counter" id="analytics"> 0 </p>
       <p class= "stat forwarding"> Cookie Forwarding: </p>
       <p class= "counter" id="forwarding"> 0</p>
     </div>

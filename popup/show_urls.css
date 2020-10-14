@@ -19,11 +19,12 @@ html, body {
 
 }
 
-#button{
+#button-container{
   float: right;
   margin-top: 2em;
   margin-right: 30px;
 }
+
 
 /*Styling for statistics*/
 .statistics{
@@ -109,6 +110,6 @@ html, body {
   color: darkgreen;
 }
 
-.analysis{
+.analytics{
   color: goldenrod;
 }

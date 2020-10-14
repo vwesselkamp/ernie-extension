@@ -376,7 +376,7 @@ class OriginTab extends GenericTab{
      */
     constructMessageToPopup() {
         return browser.runtime.sendMessage({
-            analytics: true
+            analysis: true
         });
     }
 }
