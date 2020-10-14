@@ -102,11 +102,13 @@ function constructAnalysis() {
 
 
 function constructHeader() {
+  if(backgroundPage.browserTabs.currentTab === undefined){
+    document.getElementById("no-page").style.display = "block";
+    document.getElementById("everything").style.display = "none";
+  }
+
   let page = backgroundPage.browserTabs.currentTab.domain;
   // if in an administrative tab of firefox, or a newly opened one
-  if(page == null){
-    page = "Currently not a web page";
-  }
 
   // if shadowTabId exists, it is a OriginTab. Instanceof does not work for some reason
   if(backgroundPage.browserTabs.currentTab.shadowTabId){

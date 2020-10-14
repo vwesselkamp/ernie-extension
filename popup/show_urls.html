@@ -8,46 +8,50 @@
   </head>
 
 <body>
-  <div class="header">
-  <!--  <p class= "name" id="popup-title"> All Requests</p>-->
-    <div class="inner"><p class= "page" id="current-page"> Page: </p></div>
-    <div class="inner" id="button-container"><button type="button" id="button">Show Shadow Tab</button></div>
+  <div class="page" id="no-page" style="display: none">
+    <p>Not on a web page</p>
   </div>
-  <div class="statistics" id="origin">
-    <div class="stat-container">
-      <p class= "stat"> Number of Requests:</p>
-      <p class= "counter" id="requests"> 0</p>
+  <div id="everything">
+    <div class="header">
+      <div class="inner"><p class="page" id="current-page"> Page: </p></div>
+      <div class="inner" id="button-container"><button type="button" id="button">Show Shadow Tab</button></div>
     </div>
-    <div class="stat-container">
-      <p class= "stat basic-tracking"> Basic Tracking: </p>
-      <p class= "counter" id="basic-tracking"> 0</p>
-      <p class= "stat third-syncing"> 3rd Party Syncing: </p>
-      <p class= "counter" id="third-syncing"> 0 </p>
+    <div class="statistics" id="origin">
+      <div class="stat-container">
+        <p class= "stat"> Number of Requests:</p>
+        <p class= "counter" id="requests"> 0</p>
+      </div>
+      <div class="stat-container">
+        <p class= "stat basic-tracking"> Basic Tracking: </p>
+        <p class= "counter" id="basic-tracking"> 0</p>
+        <p class= "stat third-syncing"> 3rd Party Syncing: </p>
+        <p class= "counter" id="third-syncing"> 0 </p>
+      </div>
+      <div class="stat-container">
+        <p class= "stat tracking-by-tracker"> Tracking initiated by another Tracker: </p>
+        <p class= "counter" id="tracking-by-tracker"> 0 </p>
+        <p class= "stat first-syncing"> 1st Party Syncing: </p>
+        <p class= "counter" id="first-syncing"> 0</p>
+      </div>
+      <div class="stat-container">
+        <p class= "stat analytics"> Analysis: </p>
+        <p class= "counter" id="analytics"> 0 </p>
+        <p class= "stat forwarding"> Cookie Forwarding: </p>
+        <p class= "counter" id="forwarding"> 0</p>
+      </div>
     </div>
-    <div class="stat-container">
-      <p class= "stat tracking-by-tracker"> Tracking initiated by another Tracker: </p>
-      <p class= "counter" id="tracking-by-tracker"> 0 </p>
-      <p class= "stat first-syncing"> 1st Party Syncing: </p>
-      <p class= "counter" id="first-syncing"> 0</p>
-    </div>
-    <div class="stat-container">
-      <p class= "stat analytics"> Analysis: </p>
-      <p class= "counter" id="analytics"> 0 </p>
-      <p class= "stat forwarding"> Cookie Forwarding: </p>
-      <p class= "counter" id="forwarding"> 0</p>
-    </div>
-  </div>
-  <div id="status" style="display: none">LOADING...</div>
-  <div id="analyser">
-    <div class="content" id="request">
-      <div class="small-titles">Requests</div>
-      <ol class="urls" id="request-urls">
-      </ol>
-    </div>
-    <div class="content" id="responses">
-      <div class="small-titles">Unmatched Responses</div>
-      <ol class="urls" id="response-urls">
-      </ol>
+    <div id="status" style="display: none">LOADING...</div>
+    <div id="analyser">
+      <div class="content" id="request">
+        <div class="small-titles">Requests</div>
+        <ol class="urls" id="request-urls">
+        </ol>
+      </div>
+      <div class="content" id="responses">
+        <div class="small-titles">Unmatched Responses</div>
+        <ol class="urls" id="response-urls">
+        </ol>
+      </div>
     </div>
   </div>
   <script src="show_urls.js"></script>
