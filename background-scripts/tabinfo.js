@@ -323,7 +323,6 @@ class OriginTab extends GenericTab{
                         let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
                         if(!twin){
                             console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
-                            console.log(domain.cookies)
                             let strippedDomainName = removeLeadingDots(storageCookie.domain);
                             this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
                                 .addCookies([new Cookie(storageCookie.name, storageCookie.value, SET)])

@@ -213,7 +213,7 @@ class WebRequest{
      * request initiated by another tracker
      */
     isInitiatedByPredecessor() {
-        if(this.predecessor){
+        if(this.predecessor && this.predecessor.domain !== this.domain){
             if (browserTabs.getTab(this.browserTabId).isTracker(this.predecessor.domain)) {
                 console.info("Redirect origin " + this.predecessor.domain + " for " + this.url + " is a tracker")
                 return true;
@@ -293,7 +293,8 @@ class WebRequest{
      */
     getRedirectOrigin() {
         if (this.predecessor) {
-            if(this.isCookieSendAsParam(this.predecessor.cookies)){
+            let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(this.predecessor.domain).cookies
+            if(this.isCookieSendAsParam(domainCookies)){
                 return this.predecessor;
             } else if (this.isParamsForwarded()){
                 return this.predecessor.getRedirectOrigin();
@@ -351,8 +352,8 @@ class WebRequest{
      */
     isParamsEqual(originalParameterValue, comparisonValue) {
         if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
-        if(originalParameterValue === true || originalParameterValue === false
-            ||comparisonValue === false || comparisonValue === true) return false;
+        if(originalParameterValue === "true" || originalParameterValue === "false"
+            ||comparisonValue === "false" || comparisonValue === "true") return false;
 
         if(originalParameterValue === btoa(comparisonValue)){
             console.warn("Found b64 encoded param " + originalParameterValue + " from " + comparisonValue)

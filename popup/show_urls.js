@@ -174,7 +174,6 @@ function constructPageFromScratch() {
 function handleButtonClick(event) {
   if(backgroundPage.browserTabs.currentTab.originTab) {
     let tabID = backgroundPage.browserTabs.currentTab.tabId;
-    console.log(tabID)
     let parentTabId = backgroundPage.browserTabs.currentTab.originTab;
     browser.tabs.update(parentTabId, { active: true})
         .then(()=>{
