@@ -33,6 +33,8 @@ fetch("http://localhost:8080/ping")
         if(text.includes("Greetings from RESTHeart!")){
             mongoDBAccess = true;
             console.log("MongoDB accessible")
+        } else {
+            console.warn("MongoDB inaccessible")
         }
     });
 

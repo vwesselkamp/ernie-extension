@@ -146,9 +146,18 @@ constructPageFromScratch();
 
 function constructPageFromScratch() {
   browser.runtime.getBackgroundPage()
-      .then(async (page) => {
+      .then( (page) => {
         backgroundPage = page;
         // Set current tab in case the popup is opened without a tab being activated
         backgroundPage.browserTabs.setCurrentTab().then(constructPage);
       });
 }
+
+function handleButtonClick(event) {
+  console.log("EVENT")
+  let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
+  browser.tabs.update(shadowTabId, { active: true})
+      .then(()=>constructPageFromScratch());
+}
+
+document.getElementById("button").addEventListener("click", handleButtonClick);

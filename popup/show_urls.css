@@ -4,15 +4,25 @@ html, body {
 
 /* Styling for Top*/
 .header{
+  width:100%;
+}
+
+.inner {
   display: inline-block;
-  margin-left: 30px;
 }
 
 .page{
   font-family: 'Lato', serif;
   font-size: 25px;
   font-weight: 300;
-  display: inline-block;
+  margin-left: 30px;
+
+}
+
+#button{
+  float: right;
+  margin-top: 2em;
+  margin-right: 30px;
 }
 
 /*Styling for statistics*/
