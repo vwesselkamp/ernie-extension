@@ -349,9 +349,31 @@ class WebRequest{
      * @returns {boolean}
      */
     isParamsEqual(originalParameterValue, comparisonValue) {
-        if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
+        /**
+         * This is a special kind of parameter sharing done by google-analytics.
+         * As we usually don"t consider . as a separator, it is normally not found. We therefore explicitly check,
+         * if the GA cookie of the form "GAX.Y.Z.C" of the first party domain is shared as a URL parameter of the
+         * form "Z.C"
+         * @returns {boolean}
+         */
+        function isGASharing(){
+            if(this.domain === "google-analytics.com"){
+                let splitValue = comparisonValue.split('.');
+                let cutParam = splitValue.slice(Math.max(splitValue.length - 2, 0)).join('.')
+                if(originalParameterValue === cutParam){
+                    console.log("GA SHARING")
+                    return true;
+                }
+            }
+        }
+
+        if(originalParameterValue.length < 3 || comparisonValue.length < 3) return false;
         if(originalParameterValue === "true" || originalParameterValue === "false"
             ||comparisonValue === "false" || comparisonValue === "true") return false;
+
+        if(isGASharing.call(this)){
+            return true;
+        }
 
         if(originalParameterValue === btoa(comparisonValue)){
             console.warn("Found b64 encoded param " + originalParameterValue + " from " + comparisonValue)
@@ -372,7 +394,7 @@ class WebRequest{
                 let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
                 return originRequest;
             } else{
-                console.warn("Waht happened here")
+                console.warn("What happened here")
             }
         } else if(this.completeReferer){
             let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer)
