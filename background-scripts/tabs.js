@@ -42,10 +42,11 @@ class Tabs{
      * @param url{string} with all the parameters
      * @param tabId
      * @param origin{number} id of the original tab
+     * @param originDbId{number}
      * @returns {*}
      */
-    addShadowTab(url, tabId, origin){
-        this.tabs[tabId] = new ShadowTab(url, tabId, origin);
+    addShadowTab(url, tabId, origin, originDbId){
+        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId);
         return this.tabs[tabId];
     }
 

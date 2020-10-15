@@ -1,6 +1,7 @@
 let mongoDBUser;
 let mongoDBPassword;
-let mongoDBLocation;
+let originDBLocation;
+let shadowDBLocation = 'http://localhost:8080/shadow-tabs';
 let mongoDBAccess = false;
 
 /**
@@ -9,7 +10,7 @@ let mongoDBAccess = false;
 function setDatabaseAccess() {
     var location = browser.storage.local.get('location');
     location.then((res) => {
-        mongoDBLocation = res.location || 'http://localhost:8080/extension';
+        originDBLocation = res.location || 'http://localhost:8080/extension';
     });
 
     var user = browser.storage.local.get('user');
@@ -39,6 +40,10 @@ fetch("http://localhost:8080/ping")
     });
 
 class GenericTab {
+    /**
+     * @param url{string} is the full URL of the main page
+     * @param tabId{number}
+     */
     constructor(url, tabId) {
         this.url = url;
         this.tabId = tabId;
@@ -159,11 +164,13 @@ class ShadowTab extends GenericTab{
     /**
      * @param url{string}
      * @param tabId{number}
-     * @param origin{number}
+     * @param originTabId{number}
+     * @param originDbId{number} the timestamp at which the origin tab was created, used as identifier in the database
      */
-    constructor(url, tabId, origin) {
+    constructor(url, tabId, originTabId, originDbId) {
         super(url, tabId);
-        this.originTab = origin;
+        this.originTab = originTabId;
+        this._id = originDbId
     }
 }
 
@@ -178,7 +185,7 @@ class OriginTab extends GenericTab{
     constructor(url, tabId) {
         super(url, tabId);
         this.evaluated = false;
-        this._id = Date.now();
+        this._id = Date.now(); // this is used as an identifier for the database
         this.createContainer();
     }
 
@@ -205,7 +212,7 @@ class OriginTab extends GenericTab{
                 return browser.tabs.hide(shadowTab.id); // this hides the tab
             }).then(() => {
                 console.info("Creating shadow Tab for " + this.url)
-                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId);
+                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id);
                 //update sets the url of the shadowTab to that of the original request
                 return browser.tabs.update(this.shadowTabId, {
                     url: this.url
@@ -346,6 +353,11 @@ class OriginTab extends GenericTab{
 
     }
 
+    /**
+     * We send a POST requests with the whole object as JSON in the body.
+     * For fetch, the authorization need to be set in the header.
+     * The content type defaults to application/text and must be manually set to json, or the restheart API doesn't accept it
+     */
     sendTabToDB() {
         if(!mongoDBAccess) return;
         console.log("Sending TAb with ID " + this._id)
@@ -353,10 +365,16 @@ class OriginTab extends GenericTab{
         headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
         headers.set('Content-Type', 'application/json');
 
-        fetch(mongoDBLocation, {
+        fetch(originDBLocation, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(this)
+        })
+
+        fetch(shadowDBLocation, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(browserTabs.getTab(this.shadowTabId))
         })
     }
 
