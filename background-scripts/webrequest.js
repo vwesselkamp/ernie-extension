@@ -44,8 +44,6 @@ class WebRequest{
         let params = (new URL(this.url)).searchParams;
         let splitParams = [];
         for(let [key, value] of params){
-            if(key.includes("google_nid")) console.log("GOOGLE_NID in the key")
-            if(value.includes("google_nid")) console.log("GOOGLE_NID in the value")
             let result = value.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
@@ -404,10 +402,18 @@ class WebRequest{
         return this.category + " " + party;
     }
 
+    /**
+     * Doubleclick send cookies in the URL parameters encrypted.
+     * From their docs from 15/10/20 [https://developers.google.com/authorized-buyers/rtb/cookie-guide]:
+     * A website send a request to doubleclick.net containing ?google_nid=1234
+     * where 1234 is the identifier supplied by Google(?). Doubleclick then redirects back to the website, with its cookie
+     * encrypted (?) in the URL parameters. This specific case is covered here
+     * @returns {boolean}
+     */
     isEncryptedSharing() {
         if(this.predecessor && this.domain !== "doubleclick.net"){
             if(this.predecessor.domain === "doubleclick.net"){
-                if(this.predecessor.urlSearchParams.includes("google_nid")){
+                if((new URL(this.predecessor.url)).searchParams.has("google_nid")){
                     return true;
                 }
             }
