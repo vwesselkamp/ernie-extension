@@ -1,16 +1,21 @@
 let mongoDBUser;
 let mongoDBPassword;
 let originDBLocation;
-let shadowDBLocation = 'http://localhost:8080/shadow-tabs';
+let shadowDBLocation;
 let mongoDBAccess = false;
 
 /**
  * Sets the vars we need to access the DB by retrieving them from the local storage
  */
 function setDatabaseAccess() {
-    var location = browser.storage.local.get('location');
-    location.then((res) => {
+    var originLocation = browser.storage.local.get('location');
+    originLocation.then((res) => {
         originDBLocation = res.location || 'http://localhost:8080/extension';
+    });
+
+    var shadowLocation = browser.storage.local.get('location');
+    shadowLocation.then((res) => {
+        shadowDBLocation = res.location || 'http://localhost:8080/shadow-tabs';
     });
 
     var user = browser.storage.local.get('user');

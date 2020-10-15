@@ -1,6 +1,7 @@
 function saveOptions(e) {
     browser.storage.local.set({
-        location: document.querySelector("#location").value,
+        originLocation: document.querySelector("#origin-location").value,
+        shadowLocation: document.querySelector("#shadow-location").value,
         user: document.querySelector("#user").value,
         password: document.querySelector("#password").value,
     });
@@ -8,9 +9,14 @@ function saveOptions(e) {
 }
 
 function restoreOptions() {
-    var location = browser.storage.local.get('location');
-    location.then((res) => {
-        document.querySelector("#location").value = res.location || 'http://localhost:8080/extension';
+    var origin = browser.storage.local.get('originLocation');
+    origin.then((res) => {
+        document.querySelector("#origin-location").value = res.originLocation || 'http://localhost:8080/extension';
+    });
+
+    var shadow = browser.storage.local.get('shadowLocation');
+    shadow.then((res) => {
+        document.querySelector("#shadow-location").value = res.shadowLocation || 'http://localhost:8080/shadow-tabs';
     });
 
     var user = browser.storage.local.get('user');
