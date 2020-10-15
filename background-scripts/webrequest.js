@@ -358,8 +358,7 @@ class WebRequest{
         if(originalParameterValue === btoa(comparisonValue)){
             console.warn("Found b64 encoded param " + originalParameterValue + " from " + comparisonValue)
         }
-        return originalParameterValue.includes(comparisonValue)
-            || comparisonValue.includes(originalParameterValue)
+        return originalParameterValue === comparisonValue
             || originalParameterValue === btoa(comparisonValue);
     }
 
