@@ -76,10 +76,6 @@ html, body {
   text-overflow: ellipsis;
 }
 
-.url:hover {
-  white-space: initial;
-}
-
 .third {
   font-weight: bold;
 }
@@ -99,9 +95,6 @@ html, body {
   margin-right: 20px;
 }
 
-.cookie:hover{
-  white-space: initial;
-}
 .identifying{
   font-weight: bold;
 }
