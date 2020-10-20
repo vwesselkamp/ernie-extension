@@ -440,7 +440,8 @@ class WebRequest{
      */
     isEncryptedSharing() {
         if(this.predecessor && this.domain !== "doubleclick.net"){
-            if(this.predecessor.domain === "doubleclick.net"){
+            // the second domain is for the test pages
+            if(this.predecessor.domain === "doubleclick.net" || this.predecessor.domain === "cookies.com"){
                 if((new URL(this.predecessor.url)).searchParams.has("google_nid")){
                     return true;
                 }
