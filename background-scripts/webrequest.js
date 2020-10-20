@@ -44,6 +44,7 @@ class WebRequest{
         let params = (new URL(this.url)).searchParams;
         let splitParams = [];
         for(let [key, value] of params){
+            console.log(value)
             let result = value.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
@@ -357,7 +358,8 @@ class WebRequest{
          * @returns {boolean}
          */
         function isGASharing(){
-            if(this.domain === "google-analytics.com"){
+            // the second domain is allowed for the test website
+            if(this.domain === "google-analytics.com" || this.domain === "non-identifying.com"){
                 let splitValue = comparisonValue.split('.');
                 let cutParam = splitValue.slice(Math.max(splitValue.length - 2, 0)).join('.')
                 if(originalParameterValue === cutParam){
@@ -375,11 +377,15 @@ class WebRequest{
             return true;
         }
 
-        if(originalParameterValue === btoa(comparisonValue)){
-            console.warn("Found b64 encoded param " + originalParameterValue + " from " + comparisonValue)
+        // as we consider = a separator it is removed in the previous splitting of parameters
+        // so we have to remove the trailing = for our base64 encoded comparison value as well
+        let base64EncodedValue = btoa(comparisonValue)
+        while ( base64EncodedValue[base64EncodedValue.length-1] === "="){
+            base64EncodedValue = base64EncodedValue.substring(0, base64EncodedValue.length-1)
         }
+
         return originalParameterValue === comparisonValue
-            || originalParameterValue === btoa(comparisonValue);
+            || originalParameterValue === base64EncodedValue;
     }
 
     /**
