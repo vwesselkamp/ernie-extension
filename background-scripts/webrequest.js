@@ -442,6 +442,8 @@ class WebRequest{
         if(this.predecessor && this.domain !== "doubleclick.net"){
             // the second domain is for the test pages
             if(this.predecessor.domain === "doubleclick.net" || this.predecessor.domain === "cookies.com"){
+                // exclude the unlikely case of an inclusion
+                if(!this.isCausedByRedirect()) return false;
                 if((new URL(this.predecessor.url)).searchParams.has("google_nid")){
                     return true;
                 }
@@ -449,7 +451,22 @@ class WebRequest{
         }
         return false;
     }
+
+    /**
+     * Checks if request has been caused through a redirect
+     * @returns {boolean}
+     */
+    isCausedByRedirect(){
+        let redirects = browserTabs.getTab(this.browserTabId).getRedirectsIfExist(this.id);
+        if (redirects) {
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            if(directPredecessor){
+                return true;
+            }
+        }
+    }
 }
+
 
 
 /**
