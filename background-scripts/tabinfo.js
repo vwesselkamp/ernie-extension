@@ -265,14 +265,50 @@ class OriginTab extends GenericTab{
      */
     evaluateRequests() {
         /**
+         * Sets all "safe" cookies from our database.
+         * Wraps the callback function of the DB query into a Promise so that the constructor can wait for its completion
+         * before continuing.
+         * The query is performed for an URL instead of each cookie like before. That way when we use the cursor to travers
+         * the result of the query we can change the attribute of each cookie for a whole request.
+         * @returns {Promise}
+         */
+        function setSafeCookiesForDomain(domain){
+            return new Promise((resolve, reject) => {
+                // index over the domains of the safe cookies
+                const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("domain");
+                // filters all safe cookies for the request url
+                const indexRange = IDBKeyRange.only(domain.name);
+                let idbRequest = cookieIndex.openCursor(indexRange);
+                /**
+                 * TODO: find a way to extract this method
+                 * For each safe cookie from our query result, check if the same cookie was send in our request
+                 * @param queryResult contain all safe cookies from the domain of our request
+                 */
+                idbRequest.onsuccess = function(queryResult) {
+                    const cursor = queryResult.target.result;
+                    if (cursor) {
+                        for (let cookie of domain.cookies) {
+                            //call() allows to define the content of "this" in the called method
+                            cookie.setIfSafeCookie.call(cookie, cursor.value)
+                        }
+                        cursor.continue();
+                    } else {
+                        // reached the end of the cursor so we exit the callback function and can resole the promise at the
+                        // same time
+                        resolve(domain.cookies)
+                    }
+                };
+                idbRequest.onerror = event=> reject(event)
+            });
+        }
+
+        /**
          * Cookies are compared domain wide, meaning that if the domain of a request has a cookie in the same domain of the
          * shadow request, these are set. This also means, that the early requests are also classified correctly
          */
-        function setIdentifyingCookies() {
-            console.log("Comparing now " + this.url)
-
-            for (let domain of this.domains) {
-                let shadowDomain = browserTabs.getTab(this.shadowTabId).domains.find(sd => sd.name === domain.name)
+        function setIdentifyingCookies(domain, shadowTabId) {
+            return new Promise((resolve, reject) => {
+                let shadowDomain = browserTabs.getTab(shadowTabId).domains.find(sd => sd.name === domain.name)
                 if (shadowDomain) {
                     for (let cookie of domain.cookies) {
                         cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
@@ -283,7 +319,8 @@ class OriginTab extends GenericTab{
                 } else {
                     console.warn("No shadow domain found for " + domain.name)
                 }
-            }
+                resolve("Done");
+            })
         }
 
         function basicTracking() {
@@ -347,18 +384,28 @@ class OriginTab extends GenericTab{
             }
         }
 
+        function setCookieCharacteristics(){
+            const promises = [];
+
+            for(let domain of this.domains){
+                promises.push(setSafeCookiesForDomain(domain)
+                    .then(()=> setIdentifyingCookies(domain, this.shadowTabId)));
+            }
+            return Promise.all(promises);
+        }
+
 
         logCookiesFromJavascript.call(this)
-        setIdentifyingCookies.call(this);
+        setCookieCharacteristics.call(this)
+            .then(r => {
+                basicTracking.call(this);
+                setTrackingByTracker.call(this);
+                setCookieSyncing.call(this);
 
-        basicTracking.call(this);
-        setTrackingByTracker.call(this);
-        setCookieSyncing.call(this);
-
-        this.evaluated = true;
-        this.notifyPopupOfAnalysis()
-        this.sendTabToDB();
-
+                this.evaluated = true;
+                this.notifyPopupOfAnalysis()
+                this.sendTabToDB();
+            })
     }
 
     /**

@@ -14,7 +14,9 @@ which resets the current db version to 0, or raise the version number in the req
 request.onerror = () => console.warn("Error: Database could not be initialized");
 
 // db is successfully retrieved
-request.onsuccess = (event) => db = event.target.result;
+request.onsuccess = (event) => {
+    db = event.target.result
+} ;
 
 /**
  * When upgrade event is triggered, the database schemas can be updated and changed

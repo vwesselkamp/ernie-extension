@@ -44,7 +44,6 @@ class WebRequest{
         let params = (new URL(this.url)).searchParams;
         let splitParams = [];
         for(let [key, value] of params){
-            console.log(value)
             let result = value.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
@@ -172,48 +171,6 @@ class WebRequest{
             this.category = Categories.TRACKINGBYTRACKER
         }
     }
-
-    /**
-     * Sets all "safe" cookies from our database.
-     * Wraps the callback function of the DB query into a Promise so that the constructor can wait for its completion
-     * before continuing.
-     * The query is performed for an URL instead of each cookie like before. That way when we use the cursor to travers
-     * the result of the query we can change the attribute of each cookie for a whole request.
-     * @returns {Promise}
-     */
-    checkForSafeCookies(){
-        return new Promise((resolve, reject) => {
-            // index over the domains of the safe cookies
-            const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("url");
-            // filters all safe cookies for the request url
-            const indexRange = IDBKeyRange.only(getSecondLevelDomainFromUrl(this.url));
-            let idbRequest = cookieIndex.openCursor(indexRange);
-
-            // context changes in callback function, so save current request in var
-            let request = this;
-            /**
-             * TODO: find a way to extract this method
-             * For each safe cookie from our query result, check if the same cookie was send in our request
-             * @param queryResult contain all safe cookies from the domain of our request
-             */
-            idbRequest.onsuccess = function(queryResult) {
-                const cursor = queryResult.target.result;
-                if (cursor) {
-                    for (let cookie of request.cookies) {
-                        //call() allows to define the content of "this" in the called method
-                        // cookie.setIfIdCookie.call(cookie, cursor.value.key)
-                    }
-                    cursor.continue();
-                } else {
-                    // reached the end of the cursor so we exit the callback function and can resole the promise at the
-                    // same time
-                    resolve(request.cookies)
-                }
-            };
-            idbRequest.onerror = event=> reject(event)
-        });
-    }
-
 
     //TODO:this
     setBasicTracking(request) {
@@ -611,6 +568,13 @@ class Cookie{
     writeToDB(domain) {
         let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
         let cookie = {domain: domain, key: this.key, value: this.value};
-        console.log(cookieObjectStore.add(cookie));
+        cookieObjectStore.add(cookie);
+    }
+
+    setIfSafeCookie(safeCookie) {
+        if(safeCookie.key === this.key && safeCookie.value === this.value) {
+            this.safe = true;
+            this.identifying = false;
+        }
     }
 }
