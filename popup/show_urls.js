@@ -78,12 +78,12 @@ function insertResponse(response) {
 function setStats(tab){
   try{
     document.getElementById("requests").innerHTML = (tab.requests.length + tab.responses.length).toString();
-    document.getElementById("basic-tracking").innerHTML = (document.getElementsByClassName("basic-tracking").length-1).toString();
-    document.getElementById("tracking-by-tracker").innerHTML = (document.getElementsByClassName("tracking-by-tracker").length-1).toString();
-    document.getElementById("third-syncing").innerHTML = (document.getElementsByClassName("third-syncing").length-1).toString();
-    document.getElementById("first-syncing").innerHTML = (document.getElementsByClassName("first-syncing").length-1).toString();
-    document.getElementById("forwarding").innerHTML = (document.getElementsByClassName("forwarding").length-1).toString();
-    document.getElementById("analytics").innerHTML = (document.getElementsByClassName("analytics").length-1).toString();
+    document.getElementById("basic-tracking").innerHTML = (document.querySelectorAll("details.basic-tracking").length).toString();
+    document.getElementById("tracking-by-tracker").innerHTML = (document.querySelectorAll("details.tracking-by-tracker").length).toString();
+    document.getElementById("third-syncing").innerHTML = (document.querySelectorAll("details.third-syncing").length).toString();
+    document.getElementById("first-syncing").innerHTML = (document.querySelectorAll("details.first-syncing").length).toString();
+    document.getElementById("forwarding").innerHTML = (document.querySelectorAll("details.forwarding, .url.forwarding").length).toString();
+    document.getElementById("analytics").innerHTML = (document.querySelectorAll("details.analytics, .url.analytics").length).toString();
 
   } catch (e) {
     console.warn(e);
