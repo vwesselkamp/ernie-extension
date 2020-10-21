@@ -363,7 +363,6 @@ class WebRequest{
                 let splitValue = comparisonValue.split('.');
                 let cutParam = splitValue.slice(Math.max(splitValue.length - 2, 0)).join('.')
                 if(originalParameterValue === cutParam){
-                    console.log("GA SHARING")
                     return true;
                 }
             }
