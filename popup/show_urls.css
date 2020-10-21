@@ -69,7 +69,6 @@ html, body {
   height: 100px;
 }
 .url{
-  white-space: nowrap;
   margin-bottom: 1%;
   margin-right: 20px;
   overflow:hidden;
@@ -93,6 +92,7 @@ html, body {
   overflow:hidden;
   text-overflow: ellipsis;
   margin-right: 20px;
+  color: black;
 }
 
 .identifying{
@@ -116,4 +116,12 @@ html, body {
 
 .analytics{
   color: goldenrod;
+}
+
+.expanded{
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  width: 100%;
+  white-space: normal;
 }

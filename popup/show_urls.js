@@ -7,6 +7,11 @@ They cannot do the same, however, for the objects received by runtime.message()
 let backgroundPage;
 
 
+function toggleExpansion(event) {
+  event.target.classList.toggle("expanded");
+}
+
+
 /**
  * Constructs the HTML for a web request object
  * @param request
@@ -22,12 +27,14 @@ function insertWebRequest(request) {
     let summary = document.createElement("summary");
     summary.innerText = request.content;
     summary.className = "url "
+    summary.addEventListener("click", toggleExpansion)
     requestElement.appendChild(summary)
 
     for (let cookie of request.cookies) {
       let cookieElement = document.createElement("div");
       cookieElement.innerText = cookie.content;
       cookieElement.className = cookie.className;
+      cookieElement.addEventListener("click", toggleExpansion)
       requestElement.appendChild(cookieElement);
     }
   }
@@ -36,6 +43,7 @@ function insertWebRequest(request) {
     requestElement = document.createElement("div");
     requestElement.innerText = request.content;
     requestElement.className = "url "
+    requestElement.addEventListener("click", toggleExpansion)
   }
 
   let requestElement;
