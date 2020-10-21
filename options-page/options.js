@@ -4,6 +4,7 @@ function saveOptions(e) {
         shadowLocation: document.querySelector("#shadow-location").value,
         user: document.querySelector("#user").value,
         password: document.querySelector("#password").value,
+        debug: document.querySelector("#debug").checked,
     });
     e.preventDefault();
 }
@@ -27,6 +28,16 @@ function restoreOptions() {
     var password = browser.storage.local.get('password');
     password.then((res) => {
         document.querySelector("#password").value = res.password || 'secret';
+    });
+
+    var debug = browser.storage.local.get('debug');
+    debug.then((res) => {
+        // to make debug mode default
+        if(res.debug === undefined) {
+            document.querySelector("#debug").checked = true;
+        } else {
+            document.querySelector("#debug").checked = res.debug;
+        }
     });
 }
 
