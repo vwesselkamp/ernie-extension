@@ -141,7 +141,11 @@ function constructContent() {
   function constructShadowContent() {
     document.getElementById("origin").style.visibility = "hidden";
     // check if the analysis has already finished
-    constructAnalysis();
+    if(DEBUG_MODE){
+      constructAnalysis();
+    } else {
+      document.getElementById("analyser").style.display = "none";
+    }
   }
 
   function constructOriginContent() {
@@ -157,6 +161,7 @@ function constructContent() {
     }
   }
 
+  getDebugMode();
   if(backgroundPage.browserTabs.currentTab.shadowTabId){
     constructOriginContent();
   } else{
@@ -164,6 +169,17 @@ function constructContent() {
   }
 }
 
+function getDebugMode(){
+  let debug = browser.storage.local.get('debug');
+  debug.then((res) => {
+    // to make debug mode default
+    if(res.debug === undefined) {
+      DEBUG_MODE = true;
+    } else {
+      DEBUG_MODE = res.debug;
+    }
+  });
+}
 /**
  * Sets up the Popup page from scratch each time the popup is opened or the window is reloaded
  * If the analysis of the page has been finished it is inserted, else there is only the waiting screen
@@ -219,4 +235,5 @@ function handleButtonClick(event) {
   }
 }
 
+let DEBUG_MODE = true;
 document.getElementById("button").addEventListener("click", handleButtonClick);
