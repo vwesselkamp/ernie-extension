@@ -122,6 +122,10 @@ html, body {
   color: darkorange;
 }
 
+.relevant{
+  color: darkorange;
+}
+
 .expanded{
   overflow: visible;
   overflow-wrap: break-word;

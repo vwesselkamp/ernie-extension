@@ -313,6 +313,7 @@ class WebRequest{
                 for(let value of this.urlSearchParams.values()) {
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
+                        this.relevant = value;
                         return true;
                     }
                 }
@@ -418,7 +419,11 @@ class WebRequest{
     }
 
     get content(){
-        return this.domain + " : " + this.url;
+        let content = this.domain + " : " + this.url;
+        if(this.relevant){
+            content = content.replace(this.relevant, "<span class=\"relevant\">" + this.relevant + "</span>" )
+        }
+        return content
     }
 
     get className(){

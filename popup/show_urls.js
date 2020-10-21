@@ -25,7 +25,7 @@ function insertWebRequest(request) {
   function listCookies() {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
-    summary.innerText = request.content;
+    summary.innerHTML = request.content;
     summary.className = "url "
     summary.addEventListener("click", toggleExpansion)
     requestElement.appendChild(summary)
@@ -42,7 +42,7 @@ function insertWebRequest(request) {
 
   function listOnlyUrl() {
     requestElement = document.createElement("div");
-    requestElement.innerText = request.content;
+    requestElement.innerHTML = request.content;
     requestElement.className = "url "
     requestElement.addEventListener("click", toggleExpansion)
   }
