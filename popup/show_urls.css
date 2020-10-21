@@ -118,6 +118,10 @@ html, body {
   color: goldenrod;
 }
 
+.identifying.basic-tracking, .identifying.tracking-by-tracker, .identifying.first-syncing, .identifying.third-syncing {
+  color: darkorange;
+}
+
 .expanded{
   overflow: visible;
   overflow-wrap: break-word;

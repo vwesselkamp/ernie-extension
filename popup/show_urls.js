@@ -30,10 +30,11 @@ function insertWebRequest(request) {
     summary.addEventListener("click", toggleExpansion)
     requestElement.appendChild(summary)
 
+    //TODO: refactor class names
     for (let cookie of request.cookies) {
       let cookieElement = document.createElement("div");
       cookieElement.innerText = cookie.content;
-      cookieElement.className = cookie.className;
+      cookieElement.className = cookie.className + " " + request.category;
       cookieElement.addEventListener("click", toggleExpansion)
       requestElement.appendChild(cookieElement);
     }
