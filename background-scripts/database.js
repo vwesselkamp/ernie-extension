@@ -11,7 +11,7 @@ const request = indexedDB.open("extension-db", 1);
 If this error occurs it most likely means that the database version is incorrect. Try reinstalling the popup,
 which resets the current db version to 0, or raise the version number in the request above
  */
-request.onerror = () => console.log("Error: Database could not be initialized");
+request.onerror = () => console.warn("Error: Database could not be initialized");
 
 // db is successfully retrieved
 request.onsuccess = (event) => db = event.target.result;
@@ -42,36 +42,6 @@ request.onupgradeneeded = function(event) {
         }
     }
 
-    /**
-     * Parses file into the DB
-     * @param text
-     */
-    function readCookiesIntoDB(text) {
-        let lines = text.split("\n");
-        lines.shift(); //remove title with URL ... Key
-        // TODO: transaction lifetime is bit complicated, so find out how to keep cookieStore from outer scope alive
-        let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
-        lines.forEach((cookieData) => {
-            if (cookieData === "") return; // last line
-
-            let words = cookieData.split(" ");
-            // The file sometimes contains subdomains as well, which we dont care about
-            let cookie = {url: getSecondLevelDomainFromDomain(words[0]), key: words[1]};
-            cookieObjectStore.add(cookie);
-        })
-    }
-
-    /**
-     * Get the file content
-     */
-    function parseCookieFile(){
-        fetch('safe.txt')
-            .then(response => {
-                return response.text()
-            })
-            .then(readCookiesIntoDB);
-    }
-
     console.info("Database upgraded");
     db = event.target.result;
 
@@ -79,8 +49,5 @@ request.onupgradeneeded = function(event) {
 
     // Create an index to search cookies by url. We may have duplicates
     // so we can't use a unique index.
-    objectStore.createIndex("url", "url", { unique: false });
-
-    // Use transaction oncomplete to make sure the objectStore creation is finished before adding data into it.
-    objectStore.transaction.oncomplete = parseCookieFile
+    objectStore.createIndex("domain", "domain", { unique: false });
 };

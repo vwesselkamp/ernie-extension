@@ -201,7 +201,7 @@ class WebRequest{
                 if (cursor) {
                     for (let cookie of request.cookies) {
                         //call() allows to define the content of "this" in the called method
-                        cookie.setIfIdCookie.call(cookie, cursor.value.key)
+                        // cookie.setIfIdCookie.call(cookie, cursor.value.key)
                     }
                     cursor.continue();
                 } else {
@@ -606,5 +606,11 @@ class Cookie{
         let identifying = this.identifying ? "identifying" : "normal";
         let safe = this.safe ? "safe" : "normal";
         return "cookie " + identifying + " " + safe;
+    }
+
+    writeToDB(domain) {
+        let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+        let cookie = {domain: domain, key: this.key, value: this.value};
+        console.log(cookieObjectStore.add(cookie));
     }
 }

@@ -276,6 +276,9 @@ class OriginTab extends GenericTab{
                 if (shadowDomain) {
                     for (let cookie of domain.cookies) {
                         cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
+                        if(cookie.safe){
+                            cookie.writeToDB(domain.name);
+                        }
                     }
                 } else {
                     console.warn("No shadow domain found for " + domain.name)
