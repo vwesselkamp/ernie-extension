@@ -28,6 +28,7 @@ class WebRequest{
         //not possible to inline this, because when sending it as a runtime message to the popup script, the methods are no longer available
         this.thirdParty = this.isThirdParty();
         this.cookies = [];
+        this.relevant = new Set();
         this.category = Categories.NONE;
         this.urlSearchParams = this.extractURLParams()
 
@@ -307,6 +308,8 @@ class WebRequest{
      * @returns {boolean}
      */
     isCookieSendAsParam(predecessorCookies){
+        let isSendAsParam = false;
+
         for(let predecessorCookie of predecessorCookies){
             if (!predecessorCookie.identifying) continue;
 
@@ -315,12 +318,13 @@ class WebRequest{
                 for(let value of this.urlSearchParams.values()) {
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
-                        this.relevant = value;
-                        return true;
+                        this.relevant.add(value);
+                        isSendAsParam = true;
                     }
                 }
             }
         }
+        return isSendAsParam;
     }
 
     /**
@@ -328,15 +332,17 @@ class WebRequest{
      * @returns {boolean}
      */
     isParamsForwarded(){
+        let isForwarded = false;
         for(let originalParam of this.urlSearchParams.values()) {
             for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.log("Forwarded parameter " + originalParam)
-                    this.relevant = originalParam;
-                    return true;
+                    this.relevant.add(originalParam);
+                    isForwarded = true;
                 }
             }
         }
+        return isForwarded
     }
 
 
@@ -421,11 +427,20 @@ class WebRequest{
     }
 
     get content(){
-        let content = this.domain + " : " + this.url;
-        if(this.relevant){
-            content = content.replace(this.relevant, "<span class=\"relevant\">" + this.relevant + "</span>" )
+        //splits at first occurrence of question mark
+        let urlParts = this.url.split(/\?(.+)/)
+
+        try{
+            this.relevant.forEach((identifier) => {
+                console.log(identifier)
+                urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(identifier), "<span class=\"relevant\">" + identifier + "</span>" )
+            })
+        } catch (e) {
+            console.log(urlParts)
+            console.log(this.relevant)
         }
-        return content
+
+        return this.domain + " : " + urlParts.join('')
     }
 
     get className(){
