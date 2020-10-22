@@ -258,6 +258,8 @@ class WebRequest{
         // todo: what about the parameters that are forwarded but never linked to cookies
         if (originRequest) {
             if (originRequest.thirdParty ) {
+                // if it shares url parameters even further backwards, we check if it could belong into
+                // one of the overlapping catgeories
                 if(this.sharesRelevantElements(originRequest)){
                     if(originRequest.isBasicTracking.call(originRequest)) {
                         this.category = Categories["1st-3rd-SYNC"];
