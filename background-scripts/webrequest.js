@@ -257,12 +257,21 @@ class WebRequest{
         let originRequest = this.getRedirectOrigin();
         // todo: what about the parameters that are forwarded but never linked to cookies
         if (originRequest) {
-            if (originRequest.thirdParty && originRequest.domain !== this.domain) {
-                if (this.isBasicTracking.call(this)) {
-                    this.category = Categories["3rd-SYNCING"];
-                } else {
-                    this.category = Categories.FORWARDING;
+            if (originRequest.thirdParty ) {
+                if(this.sharesRelevantElements(originRequest)){
+                    if(originRequest.isBasicTracking.call(originRequest)) {
+                        this.category = Categories["1st-3rd-SYNC"];
+                    } else {
+                        this.category = Categories.FORLYTICS;
+                    }
+                } else if(originRequest.domain !== this.domain){
+                    if (this.isBasicTracking.call(this)) {
+                        this.category = Categories["3rd-SYNCING"];
+                    } else {
+                        this.category = Categories.FORWARDING;
+                    }
                 }
+
             } else {
                 if (this.isBasicTracking.call(this)) {
                     this.category = Categories["1st-SYNCING"];
@@ -336,7 +345,7 @@ class WebRequest{
         for(let originalParam of this.urlSearchParams.values()) {
             for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
-                    console.log("Forwarded parameter " + originalParam)
+                    console.info("Forwarded parameter " + originalParam)
                     if(this.predecessor.relevant.has(originalParam)){
                         this.relevant.add(originalParam);
                     }
@@ -430,11 +439,10 @@ class WebRequest{
 
     get content(){
         //splits at first occurrence of question mark
-        let urlParts = this.url.split(/\?(.+)/)
+        let urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
 
         try{
             this.relevant.forEach((identifier) => {
-                console.log(identifier)
                 urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(identifier), "<span class=\"relevant\">" + identifier + "</span>" )
             })
         } catch (e) {
@@ -442,7 +450,7 @@ class WebRequest{
             console.log(this.relevant)
         }
 
-        return this.domain + " : " + urlParts.join('')
+        return this.domain + " : " + urlParts.join('?')
     }
 
     get className(){
@@ -486,6 +494,17 @@ class WebRequest{
                 return true;
             }
         }
+    }
+
+    sharesRelevantElements(originRequest) {
+        let sharing = false
+        for(let param of this.urlSearchParams){
+            if(originRequest.relevant.has(param)){
+                sharing = true;
+                this.relevant.add(param)
+            }
+        }
+        return sharing;
     }
 }
 
