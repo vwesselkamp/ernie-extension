@@ -10,9 +10,7 @@ var Categories = Object.freeze({
     "3rd-SYNCING":"third-syncing",
     "1st-SYNCING":"first-syncing",
     "FORWARDING": "forwarding",
-    "ANALYTICS": "analytics",
-    "FORLYTICS": "forlytics",
-    "1st-3rd-SYNC": "first-third-syncing"
+    "ANALYTICS": "analytics"
 })
 
 /**
@@ -28,7 +26,7 @@ class WebRequest{
         //not possible to inline this, because when sending it as a runtime message to the popup script, the methods are no longer available
         this.thirdParty = this.isThirdParty();
         this.cookies = [];
-        this.relevant = new Set();
+        this.forwardedParams = new Set();
         this.category = Categories.NONE;
         this.urlSearchParams = this.extractURLParams()
 
@@ -70,7 +68,7 @@ class WebRequest{
     }
 
     /**
-     * Parses each header attribute and extracts the relevant ones
+     * Parses each header attribute and extracts the forwardedParams ones
      */
     extractFromHeader(header) {
         for (let attribute of header){
@@ -260,13 +258,9 @@ class WebRequest{
             if (originRequest.thirdParty ) {
                 // if it shares url parameters even further backwards, we check if it could belong into
                 // one of the overlapping catgeories
-                if(this.sharesRelevantElements(originRequest)){
-                    if(originRequest.isBasicTracking.call(originRequest)) {
-                        this.category = Categories["1st-3rd-SYNC"];
-                    } else {
-                        this.category = Categories.FORLYTICS;
-                    }
-                } else if(originRequest.domain !== this.domain){
+                this.getParamSharedEvenFurther(originRequest)
+
+                if(originRequest.domain !== this.domain){
                     if (this.isBasicTracking.call(this)) {
                         this.category = Categories["3rd-SYNCING"];
                     } else {
@@ -329,7 +323,7 @@ class WebRequest{
                 for(let value of this.urlSearchParams.values()) {
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
-                        this.relevant.add(value);
+                        this.forwardedParams.add(new Parameter(value, this.predecessor.domain));
                         isSendAsParam = true;
                     }
                 }
@@ -348,8 +342,9 @@ class WebRequest{
             for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.info("Forwarded parameter " + originalParam)
-                    if(this.predecessor.relevant.has(originalParam)){
-                        this.relevant.add(originalParam);
+                    let forwardedParam = this.predecessor.retrieveParamIfExists(originalParam)
+                    if(forwardedParam){
+                        this.forwardedParams.add(forwardedParam);
                     }
                     isForwarded = true;
                 }
@@ -439,17 +434,25 @@ class WebRequest{
         }
     }
 
+    /**
+     * Retruns the URl as it should be put in the popup. It searches first for all the occurences of forwarded parameters
+     * and marks them in HTML with span, so they can be later styled in a diferent colour.
+     * The search is done by with URL encoded element, as the forwardedParameters have been saved URL decoded. The HTML is then
+     * inserted in the plain string, such that is not URL encoded and stays plain hTML
+     * @returns {string}
+     */
     get content(){
         //splits at first occurrence of question mark
         let urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
 
         try{
-            this.relevant.forEach((identifier) => {
-                urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(identifier), "<span class=\"relevant\">" + identifier + "</span>" )
+            this.forwardedParams.forEach((parameter) => {
+                let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
+                urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
             })
         } catch (e) {
             console.log(urlParts)
-            console.log(this.relevant)
+            console.log(this.forwardedParams)
         }
 
         return this.domain + " : " + urlParts.join('?')
@@ -498,15 +501,27 @@ class WebRequest{
         }
     }
 
-    sharesRelevantElements(originRequest) {
-        let sharing = false
+    /**
+     * If the originRequest of a request is third party, we check if it still shares some of it own URL parameters with our request.
+     * If that is the case, there might be several request which forwarded their cookies to our request.
+     * The cookies found by a first party forwarding are therefore separated from those of third parties.
+     * @param originRequest{WebRequest}
+     */
+    getParamSharedEvenFurther(originRequest) {
         for(let param of this.urlSearchParams){
-            if(originRequest.relevant.has(param)){
-                sharing = true;
-                this.relevant.add(param)
+            let forwardedParameter = originRequest.retrieveParamIfExists(param)
+            if(forwardedParameter){
+                this.forwardedParams.add(forwardedParameter)
             }
         }
-        return sharing;
+    }
+
+    retrieveParamIfExists(value){
+        for(let param of this.forwardedParams.values()){
+            if(param.value === value){
+                return param;
+            }
+        }
     }
 }
 
@@ -621,5 +636,12 @@ class Cookie{
             this.safe = true;
             this.identifying = false;
         }
+    }
+}
+
+class Parameter{
+    constructor(value, originDomain) {
+        this.value = value;
+        this.originDomain = originDomain;
     }
 }
