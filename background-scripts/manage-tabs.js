@@ -44,5 +44,8 @@ browserTabs.setCurrentTab()
 
 browser.tabs.onRemoved.addListener(browserTabs.removeContainer.bind(browserTabs));
 
+function onCompleted(details){
+    browserTabs.evaluateTab(details.tabId)
+}
 
-browser.webNavigation.onCompleted.addListener(browserTabs.evaluateTab.bind(browserTabs));
+browser.webNavigation.onCompleted.addListener(onCompleted);

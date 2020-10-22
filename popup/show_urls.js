@@ -218,13 +218,15 @@ function constructPageFromScratch() {
 }
 
 function handleButtonClick(event) {
+  // if clicked "Hide Shadow Tab"
   if(backgroundPage.browserTabs.currentTab.originTab) {
     let tabID = backgroundPage.browserTabs.currentTab.tabId;
     let parentTabId = backgroundPage.browserTabs.currentTab.originTab;
     browser.tabs.update(parentTabId, { active: true})
         .then(()=>{
           browser.tabs.hide(tabID).then(()=> {
-            constructPageFromScratch()
+            constructPageFromScratch();
+            backgroundPage.browserTabs.evaluateTab(tabID);
           });
         });
 

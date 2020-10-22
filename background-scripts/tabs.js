@@ -136,12 +136,12 @@ class Tabs{
      * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
      * It is necessary for some reason to wait a little longer
      */
-    evaluateTab(details){
-        if (this.tabs[details.tabId] instanceof ShadowTab) {
-            this.tabs[this.tabs[details.tabId].originTab].evaluateRequests();
+    evaluateTab(tabId){
+        if (this.tabs[tabId] instanceof ShadowTab) {
+            this.tabs[this.tabs[tabId].originTab].evaluateRequests();
             //do it again after 2 seconds
             setTimeout(() => {
-                this.tabs[this.tabs[details.tabId].originTab].evaluateRequests();
+                this.tabs[this.tabs[tabId].originTab].evaluateRequests();
             }, 2000);
         }
     }

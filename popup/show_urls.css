@@ -118,12 +118,36 @@ html, body {
   color: goldenrod;
 }
 
+.forlytics, .first-third-syncing {
+  color: darkorange;
+}
+
+.forlytics, .first-third-syncing {
+  color: darkorange;
+}
+
 .identifying.basic-tracking, .identifying.tracking-by-tracker, .identifying.first-syncing, .identifying.third-syncing {
   color: darkorange;
 }
 
 .relevant{
   color: darkorange;
+}
+
+.relevant.third-syncing{
+  color: olivedrab;
+}
+
+.relevant.first-syncing{
+  color: forestgreen;
+}
+
+.relevant.forwarding{
+  color: darkgreen;
+}
+
+.relevant.analytics{
+  color: goldenrod;
 }
 
 .expanded{

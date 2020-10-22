@@ -10,7 +10,9 @@ var Categories = Object.freeze({
     "3rd-SYNCING":"third-syncing",
     "1st-SYNCING":"first-syncing",
     "FORWARDING": "forwarding",
-    "ANALYTICS": "analytics"
+    "ANALYTICS": "analytics",
+    "FORLYTICS": "forlytics",
+    "1st-3rd-SYNC": "first-third-syncing"
 })
 
 /**
@@ -330,6 +332,7 @@ class WebRequest{
             for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.log("Forwarded parameter " + originalParam)
+                    this.relevant = originalParam;
                     return true;
                 }
             }
@@ -368,9 +371,8 @@ class WebRequest{
             }
         }
 
-        if(originalParameterValue.length < 3 || comparisonValue.length < 3) return false;
-        if(originalParameterValue === "true" || originalParameterValue === "false"
-            ||comparisonValue === "false" || comparisonValue === "true") return false;
+        if(originalParameterValue.length < 4 || comparisonValue.length < 4) return false;
+        if(originalParameterValue === "true" || originalParameterValue === "false") return false;
 
         if(isGASharing.call(this)){
             return true;
