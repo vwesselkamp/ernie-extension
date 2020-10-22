@@ -337,7 +337,9 @@ class WebRequest{
             for(let predecessorParam of this.predecessor.urlSearchParams.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.log("Forwarded parameter " + originalParam)
-                    this.relevant.add(originalParam);
+                    if(this.predecessor.relevant.has(originalParam)){
+                        this.relevant.add(originalParam);
+                    }
                     isForwarded = true;
                 }
             }
