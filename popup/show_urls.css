@@ -123,7 +123,7 @@ html, body {
 }
 
 .forlytics, .first-third-syncing {
-  color: darkorange;
+  color: gray;
 }
 
 .identifying.basic-tracking, .identifying.tracking-by-tracker, .identifying.first-syncing, .identifying.third-syncing {
