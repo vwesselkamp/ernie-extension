@@ -126,8 +126,6 @@ class GenericTab {
 
         for(let domain of this.domains){
             this.getCookiesFromStore(domain.name).then(storageCookies => {
-                if(this instanceof ShadowTab) console.log(storageCookies)
-
                 for(let storageCookie of storageCookies){
                     let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
                     if(!twin){

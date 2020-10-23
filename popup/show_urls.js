@@ -75,6 +75,18 @@ function insertWebRequest(request) {
   return requestElement;
 }
 
+function insertJSCookie(domain, cookie){
+  if(cookie.mode === "javascript"){
+    let cookieElement = document.createElement("div");
+    cookieElement.innerText = domain + " - " + cookie.content;
+    cookieElement.className = "cookie " + cookie.category + " " + request.category;
+    cookieElement.addEventListener("click", toggleExpansion)
+
+    document.getElementById("cookies").appendChild(cookieElement);
+
+  }
+}
+
 function insertRequest(request) {
   let node = insertWebRequest(request);
   document.getElementById("request-urls").appendChild(node);
@@ -121,10 +133,15 @@ function constructAnalysis() {
 
   document.getElementById("request-urls").innerHTML = "";
   document.getElementById("response-urls").innerHTML = "";
+  document.getElementById("cookies").innerHTML = "";
+
 
   // inset all requests/responses collected so far
   backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
   backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
+  backgroundPage.browserTabs.currentTab.domains.forEach((domain) => {
+    domain.cookies.forEach(cookie => insertJSCookie(domain.name, cookie))
+  });
 }
 
 

@@ -61,13 +61,18 @@ html, body {
   background: none;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 200px;
+  height: 170px;
   white-space: nowrap;
 }
 
 #response-urls{
-  height: 100px;
+  height: 40px;
 }
+
+#cookies{
+  height: 40px;
+}
+
 .url{
   margin-bottom: 1%;
   margin-right: 20px;

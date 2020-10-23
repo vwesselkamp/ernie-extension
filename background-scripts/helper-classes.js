@@ -48,7 +48,11 @@ class Cookie{
     }*/
 
     get content(){
-        return this.mode + " - " + this.key + ": " + this.value;
+        if(this.mode === Cookie.Mode.JS){
+            return this.key + ": " + this.value;
+        } else{
+            return this.mode + " - " + this.key + ": " + this.value;
+        }
     }
 
     /**
