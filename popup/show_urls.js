@@ -6,11 +6,13 @@ They cannot do the same, however, for the objects received by runtime.message()
 
 let backgroundPage;
 
-
+/**
+ * Adds and removes class expanded from element, determining if the overflowing text is hidden or not.
+ * @param event
+ */
 function toggleExpansion(event) {
   event.target.classList.toggle("expanded");
 }
-
 
 /**
  * Constructs the HTML for a web request object
@@ -42,7 +44,6 @@ function insertWebRequest(request) {
     completeUrlElement(summary)
     requestElement.appendChild(summary)
 
-    //TODO: refactor class names
     for (let cookie of request.cookies) {
       let cookieElement = createCookieElement(cookie);
       requestElement.appendChild(cookieElement);
@@ -87,7 +88,6 @@ function insertResponse(response) {
 
 /**
  * Sets the statistics shown on the top of the popup
- * -1 so that the stat counter itself is not also counted
  * @param tab
  */
 function setStats(tab){
@@ -99,12 +99,14 @@ function setStats(tab){
     document.getElementById("first-syncing").innerHTML = (document.querySelectorAll("details.first-syncing").length).toString();
     document.getElementById("forwarding").innerHTML = (document.querySelectorAll("details.forwarding, .url.forwarding").length).toString();
     document.getElementById("analytics").innerHTML = (document.querySelectorAll("details.analytics, .url.analytics").length).toString();
-
   } catch (e) {
     console.warn(e);
   }
 }
 
+/**
+ * Hides the non loaded requests
+ */
 function constructLoadingScreen() {
   document.getElementById("status").style.display = "block";
   document.getElementById("analyser").style.display = "none";
@@ -127,13 +129,15 @@ function constructAnalysis() {
 
 
 function constructHeader() {
+  //Set page to blank if not an analysable page
+  // if in an administrative tab of firefox, or a newly opened one
+
   if(backgroundPage.browserTabs.currentTab === undefined){
     document.getElementById("no-page").style.display = "block";
     document.getElementById("everything").style.display = "none";
   }
 
   let page = backgroundPage.browserTabs.currentTab.domain;
-  // if in an administrative tab of firefox, or a newly opened one
 
   // if shadowTabId exists, it is a OriginTab. Instanceof does not work for some reason
   if(backgroundPage.browserTabs.currentTab.shadowTabId){
@@ -168,11 +172,11 @@ function constructContent() {
 
     if (backgroundPage.browserTabs.currentTab.isEvaluated()) {
       constructAnalysis();
-      setStats(backgroundPage.browserTabs.currentTab);
     } else {
       constructLoadingScreen();
-      setStats(backgroundPage.browserTabs.currentTab);
     }
+    setStats(backgroundPage.browserTabs.currentTab);
+
   }
 
   getDebugMode();
@@ -183,6 +187,9 @@ function constructContent() {
   }
 }
 
+/**
+ * retrieves from local storage, if extension is in Debug mode, and should display more information
+ */
 function getDebugMode(){
   let debug = browser.storage.local.get('debug');
   debug.then((res) => {
@@ -194,62 +201,76 @@ function getDebugMode(){
     }
   });
 }
+
 /**
  * Sets up the Popup page from scratch each time the popup is opened or the window is reloaded
  * If the analysis of the page has been finished it is inserted, else there is only the waiting screen
  */
 function constructPage() {
+  // Set current tab in case the popup is opened without a tab being activated
+
   backgroundPage.browserTabs.setCurrentTab().then(()=>{
     constructHeader()
-
     constructContent()
   });
 }
 
 /**
- * Whenever the popup receives a message from the background scripts, it checks the type of message and acts accordingly
+ * THe very first time the page is constructed, we first retrieve the background page to get access to all the data
+ */
+function constructPageFromScratch() {
+  browser.runtime.getBackgroundPage()
+      .then( (page) => {
+        backgroundPage = page;
+        constructPage();
+      });
+}
+
+function switchTab(event) {
+  /**
+   * Make origin tab visible, then hide shadow tab. Finally start evaluation process, in case user interaction caused changes in the shadow tab
+   */
+  function switchToOriginTab() {
+    let shadowTabID = backgroundPage.browserTabs.currentTab.tabId;
+    let originTabID = backgroundPage.browserTabs.currentTab.originTab;
+    browser.tabs.update(originTabID, {active: true})
+        .then(() => {
+          return browser.tabs.hide(shadowTabID)
+        })
+        .then(() => {
+          constructPageFromScratch();
+          backgroundPage.browserTabs.evaluateTab(shadowTabID);
+        });
+  }
+
+  function switchToShadowTab() {
+    let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
+    browser.tabs.update(shadowTabId, {active: true})
+        .then(() => constructPageFromScratch());
+  }
+
+  // if clicked "Hide Shadow Tab", as shadow tab has field originTab, while originTab does not
+  if(backgroundPage.browserTabs.currentTab.originTab) {
+    switchToOriginTab();
+  } else {
+    switchToShadowTab();
+  }
+}
+
+
+/**
+ * Whenever the popup receives a valid message from the background scripts, it rebuilds the page
  */
 function evaluateMessage(message) {
-  if (message.analysis) {
+  if (message.analysis || message.reload) {
     constructPage()
-  } else if (message.reload) {
-    constructPage();
   }
 }
 
 browser.runtime.onMessage.addListener(evaluateMessage);
 
+let DEBUG_MODE = true; // defaults to true
+document.getElementById("button").addEventListener("click", switchTab);
+
 // gets the backgroundPage once on opening
 constructPageFromScratch();
-
-function constructPageFromScratch() {
-  browser.runtime.getBackgroundPage()
-      .then( (page) => {
-        backgroundPage = page;
-        // Set current tab in case the popup is opened without a tab being activated
-        backgroundPage.browserTabs.setCurrentTab().then(constructPage);
-      });
-}
-
-function handleButtonClick(event) {
-  // if clicked "Hide Shadow Tab"
-  if(backgroundPage.browserTabs.currentTab.originTab) {
-    let tabID = backgroundPage.browserTabs.currentTab.tabId;
-    let parentTabId = backgroundPage.browserTabs.currentTab.originTab;
-    browser.tabs.update(parentTabId, { active: true})
-        .then(()=>{
-          browser.tabs.hide(tabID).then(()=> {
-            constructPageFromScratch();
-            backgroundPage.browserTabs.evaluateTab(tabID);
-          });
-        });
-
-  } else {
-    let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
-    browser.tabs.update(shadowTabId, { active: true})
-        .then(()=>constructPageFromScratch());
-  }
-}
-
-let DEBUG_MODE = true;
-document.getElementById("button").addEventListener("click", handleButtonClick);

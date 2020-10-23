@@ -25,7 +25,7 @@ request.onsuccess = (event) => {
 request.onupgradeneeded = function(event) {
     /**
      * An objectStore is a bit like a table in a normal database. Our database currently has only one, "cookies",
-     * which contains all the "safe" cookies found by Imanes work.
+     * which contains all the "safe" cookies found by th extension over time.
      * The DB is either just updated or set up completely new, so we need to differentiate the two cases.
      * @returns {IDBObjectStore}
      */

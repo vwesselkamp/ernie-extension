@@ -1,3 +1,7 @@
+/**
+ * Save options that user entered into the interface
+ * @param e event
+ */
 function saveOptions(e) {
     browser.storage.local.set({
         originLocation: document.querySelector("#origin-location").value,
@@ -9,6 +13,11 @@ function saveOptions(e) {
     e.preventDefault();
 }
 
+/**
+ * When the options page is opened, this function is executed to display either the values form localStorage in the
+ * fields, or the default values
+ * TODO: Generalize
+ */
 function restoreOptions() {
     var origin = browser.storage.local.get('originLocation');
     origin.then((res) => {
