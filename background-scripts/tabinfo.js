@@ -1,49 +1,3 @@
-let mongoDBUser;
-let mongoDBPassword;
-let originDBLocation;
-let shadowDBLocation;
-let mongoDBAccess = false;
-
-/**
- * Sets the vars we need to access the DB by retrieving them from the local storage
- */
-function setDatabaseAccess() {
-    var originLocation = browser.storage.local.get('location');
-    originLocation.then((res) => {
-        originDBLocation = res.location || 'http://localhost:8080/extension';
-    });
-
-    var shadowLocation = browser.storage.local.get('location');
-    shadowLocation.then((res) => {
-        shadowDBLocation = res.location || 'http://localhost:8080/shadow-tabs';
-    });
-
-    var user = browser.storage.local.get('user');
-    user.then((res) => {
-        mongoDBUser = res.user || 'admin';
-        console.log(mongoDBUser)
-    });
-
-    var password = browser.storage.local.get('password');
-    password.then((res) => {
-        mongoDBPassword = res.password || 'secret';
-    });
-}
-browser.storage.onChanged.addListener(setDatabaseAccess);
-
-setDatabaseAccess();
-
-fetch("http://localhost:8080/ping")
-    .then(response => response.text())
-    .then(text => {
-        if(text.includes("Greetings from RESTHeart!")){
-            mongoDBAccess = true;
-            console.log("MongoDB accessible")
-        } else {
-            console.warn("MongoDB inaccessible")
-        }
-    });
-
 class GenericTab {
     /**
      * @param url{string} is the full URL of the main page
@@ -55,9 +9,8 @@ class GenericTab {
         this.domain = getSecondLevelDomainFromUrl(url)
         this.requests = [];
         this.responses = [];
-        this.domains = [];
         this.redirects = [];
-
+        this.domains = [];
     }
 
     /**
@@ -160,6 +113,39 @@ class GenericTab {
         request.integrateResponse(responseDetails);
         return true;
     }
+
+    /**
+     * If there are any cookies found in the cookie store at the end of a website loading, also store them in cookies
+     * Since the same thing is not done for the background request, this is really not very useful at the moment.
+     */
+    logCookiesFromJavascript() {
+        function removeLeadingDots(domainName) {
+            while (domainName.charAt(0) === ".") domainName = domainName.substr(1);
+            return domainName;
+        }
+
+        for(let domain of this.domains){
+            this.getCookiesFromStore(domain.name).then(storageCookies => {
+                if(this instanceof ShadowTab) console.log(storageCookies)
+
+                for(let storageCookie of storageCookies){
+                    let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
+                    if(!twin){
+                        console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
+                        let strippedDomainName = removeLeadingDots(storageCookie.domain);
+                        this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
+                            .addCookies([new Cookie(storageCookie.name, storageCookie.value, Cookie.Mode.JS)])
+                    }
+                }
+            })
+        }
+    }
+
+    getCookiesFromStore(domain){
+        return browser.cookies.getAll({
+            domain: domain
+        })
+    }
 }
 
 /**
@@ -172,10 +158,18 @@ class ShadowTab extends GenericTab{
      * @param originTabId{number}
      * @param originDbId{number} the timestamp at which the origin tab was created, used as identifier in the database
      */
-    constructor(url, tabId, originTabId, originDbId) {
+    constructor(url, tabId, originTabId, originDbId, cookieStoreID) {
         super(url, tabId);
         this.originTab = originTabId;
         this._id = originDbId
+        this.cookieStoreID = cookieStoreID
+    }
+
+    getCookiesFromStore(domain){
+        return browser.cookies.getAll({
+            domain: domain,
+            storeId: this.cookieStoreID
+        })
     }
 }
 
@@ -217,7 +211,7 @@ class OriginTab extends GenericTab{
                 return browser.tabs.hide(shadowTab.id); // this hides the tab
             }).then(() => {
                 console.info("Creating shadow Tab for " + this.url)
-                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id);
+                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id, identity.cookieStoreId);
                 //update sets the url of the shadowTab to that of the original request
                 return browser.tabs.update(this.shadowTabId, {
                     url: this.url
@@ -256,6 +250,25 @@ class OriginTab extends GenericTab{
         }
     }
 
+    static notifyPopupOfAnalysis() {
+        const sending = OriginTab.constructMessageToPopup();
+
+        sending
+            .then()
+            .catch(Tabs.onMessageRejected);
+    }
+
+    /**
+     * Sends the request and
+     * @returns {Promise<any>} that can be used to extract the answer. As the popup doesn't answer we don't care
+     * about resolving
+     */
+    static constructMessageToPopup() {
+        return browser.runtime.sendMessage({
+            analysis: true
+        });
+    }
+
     /**
      * Offline evaluation after the web page has finished loading
      * First all the cookies of the original and shadow request are compared and the identifying set as such
@@ -264,65 +277,6 @@ class OriginTab extends GenericTab{
      * to change the category of an earlier request
      */
     evaluateRequests() {
-        /**
-         * Sets all "safe" cookies from our database.
-         * Wraps the callback function of the DB query into a Promise so that the constructor can wait for its completion
-         * before continuing.
-         * The query is performed for an URL instead of each cookie like before. That way when we use the cursor to travers
-         * the result of the query we can change the attribute of each cookie for a whole request.
-         * @returns {Promise}
-         */
-        function setSafeCookiesForDomain(domain){
-            return new Promise((resolve, reject) => {
-                // index over the domains of the safe cookies
-                const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("domain");
-                // filters all safe cookies for the request url
-                const indexRange = IDBKeyRange.only(domain.name);
-                let idbRequest = cookieIndex.openCursor(indexRange);
-                /**
-                 * TODO: find a way to extract this method
-                 * For each safe cookie from our query result, check if the same cookie was send in our request
-                 * @param queryResult contain all safe cookies from the domain of our request
-                 */
-                idbRequest.onsuccess = function(queryResult) {
-                    const cursor = queryResult.target.result;
-                    if (cursor) {
-                        for (let cookie of domain.cookies) {
-                            //call() allows to define the content of "this" in the called method
-                            cookie.setIfSafeCookie.call(cookie, cursor.value)
-                        }
-                        cursor.continue();
-                    } else {
-                        // reached the end of the cursor so we exit the callback function and can resole the promise at the
-                        // same time
-                        resolve(domain.cookies)
-                    }
-                };
-                idbRequest.onerror = event=> reject(event)
-            });
-        }
-
-        /**
-         * Cookies are compared domain wide, meaning that if the domain of a request has a cookie in the same domain of the
-         * shadow request, these are set. This also means, that the early requests are also classified correctly
-         */
-        function setIdentifyingCookies(domain, shadowTabId) {
-            return new Promise((resolve, reject) => {
-                let shadowDomain = browserTabs.getTab(shadowTabId).domains.find(sd => sd.name === domain.name)
-                if (shadowDomain) {
-                    for (let cookie of domain.cookies) {
-                        cookie.compareCookiesFromShadowRequest(shadowDomain.cookies);
-                        if(cookie.safe){
-                            cookie.writeToDB(domain.name);
-                        }
-                    }
-                } else {
-                    console.warn("No shadow domain found for " + domain.name)
-                }
-                resolve("Done");
-            })
-        }
-
         function basicTracking() {
             for (let request of this.requests) {
                 if (request.isBasicTracking()) {
@@ -356,46 +310,20 @@ class OriginTab extends GenericTab{
             }
         }
 
-        /**
-         * If there are any cookies found in the cookie store at the end of a website loading, also store them in cookies
-         * Since the same thing is not done for the background request, this is really not very useful at the moment.
-         * TODO: find out what to do with this
-         */
-        function logCookiesFromJavascript() {
-            function removeLeadingDots(domainName) {
-                while (domainName.charAt(0) === ".") domainName = domainName.substr(1);
-                return domainName;
-            }
-
-            for(let domain of this.domains){
-                browser.cookies.getAll({
-                    domain: domain.name
-                }).then(storageCookies => {
-                    for(let storageCookie of storageCookies){
-                        let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
-                        if(!twin){
-                            console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
-                            let strippedDomainName = removeLeadingDots(storageCookie.domain);
-                            this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
-                                .addCookies([new Cookie(storageCookie.name, storageCookie.value, SET)])
-                        }
-                    }
-                })
-            }
-        }
-
         function setCookieCharacteristics(){
             const promises = [];
 
             for(let domain of this.domains){
-                promises.push(setSafeCookiesForDomain(domain)
-                    .then(()=> setIdentifyingCookies(domain, this.shadowTabId)));
+                promises.push(domain.setSafeCookiesForDomain()
+                    .then(()=> domain.setIdentifyingCookies(this.shadowTabId)));
             }
             return Promise.all(promises);
         }
 
 
-        logCookiesFromJavascript.call(this)
+        this.logCookiesFromJavascript()
+        browserTabs.getTab(this.shadowTabId).logCookiesFromJavascript()
+
         setCookieCharacteristics.call(this)
             .then(r => {
                 basicTracking.call(this);
@@ -403,99 +331,8 @@ class OriginTab extends GenericTab{
                 setCookieSyncing.call(this);
 
                 this.evaluated = true;
-                this.notifyPopupOfAnalysis()
-                this.sendTabToDB();
+                OriginTab.notifyPopupOfAnalysis()
+                sendTabToDB(this);
             })
-    }
-
-    /**
-     * We send a POST requests with the whole object as JSON in the body.
-     * For fetch, the authorization need to be set in the header.
-     * The content type defaults to application/text and must be manually set to json, or the restheart API doesn't accept it
-     */
-    sendTabToDB() {
-        if(!mongoDBAccess) return;
-        console.log("Sending TAb with ID " + this._id)
-        let headers = new Headers();
-        headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
-        headers.set('Content-Type', 'application/json');
-
-        fetch(originDBLocation, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(this)
-        })
-
-        fetch(shadowDBLocation, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(browserTabs.getTab(this.shadowTabId))
-        })
-    }
-
-    notifyPopupOfAnalysis() {
-        const sending = this.constructMessageToPopup();
-
-        sending
-            .then()
-            .catch(Tabs.onMessageRejected);
-    }
-
-    /**
-     * Sends the request and
-     * @returns {Promise<any>} that can be used to extract the answer. As the popup doesn't answer we don't care
-     * about resolving
-     */
-    constructMessageToPopup() {
-        return browser.runtime.sendMessage({
-            analysis: true
-        });
-    }
-}
-
-/**
- * Class that keeps track of all requests of a certain domain, and provides fast information about the domains tracking
- * properties.
- */
-class Domain {
-    constructor(domain) {
-        this.name = domain;
-        this.tracker = false;
-        this.cookies = new Set();
-        this.requests = [];
-        this.responses = [];
-    }
-
-    /**
-     * saves request/response in the corresponding array
-     */
-    archive(request){
-        this.addCookies(request.cookies);
-        if (request instanceof Response){
-            this.responses.push(request);
-        } else if(request instanceof WebRequest){
-            this.requests.push(request);
-        }
-    }
-
-    /**
-     * @param cookieArray{[Cookie]} is an array of Cookie objects
-     */
-    addCookies(cookieArray) {
-        for(let cookie of cookieArray){
-            this.cookies.add(cookie)
-        }
-    }
-
-    setTracker(value){
-        this.tracker = value;
-    }
-
-    retrieveCookieIfExists(key, value){
-        for(let cookie of this.cookies.values()){
-            if(cookie.key === key && cookie.value === value){
-                return cookie;
-            }
-        }
     }
 }

@@ -53,3 +53,76 @@ request.onupgradeneeded = function(event) {
     // so we can't use a unique index.
     objectStore.createIndex("domain", "domain", { unique: false });
 };
+
+// Also handle external database access
+let mongoDBUser;
+let mongoDBPassword;
+let originDBLocation;
+let shadowDBLocation;
+let mongoDBAccess = false;
+
+/**
+ * Sets the vars we need to access the DB by retrieving them from the local storage
+ */
+function setDatabaseAccess() {
+    var originLocation = browser.storage.local.get('originLocation');
+    originLocation.then((res) => {
+        originDBLocation = res.location || 'http://localhost:8080/extension';
+    });
+
+    var shadowLocation = browser.storage.local.get('shadowLocation');
+    shadowLocation.then((res) => {
+        shadowDBLocation = res.location || 'http://localhost:8080/shadow-tabs';
+    });
+
+    var user = browser.storage.local.get('user');
+    user.then((res) => {
+        mongoDBUser = res.user || 'admin';
+        console.log(mongoDBUser)
+    });
+
+    var password = browser.storage.local.get('password');
+    password.then((res) => {
+        mongoDBPassword = res.password || 'secret';
+    });
+}
+browser.storage.onChanged.addListener(setDatabaseAccess);
+
+setDatabaseAccess();
+
+//TODO
+fetch("http://localhost:8080/ping")
+    .then(response => response.text())
+    .then(text => {
+        if(text.includes("Greetings from RESTHeart!")){
+            mongoDBAccess = true;
+            console.log("MongoDB accessible")
+        } else {
+            console.warn("MongoDB inaccessible")
+        }
+    }).catch(e => console.log(e));
+
+/**
+ * We send a POST requests with the whole object as JSON in the body.
+ * For fetch, the authorization need to be set in the header.
+ * The content type defaults to application/text and must be manually set to json, or the restheart API doesn't accept it
+ */
+function sendTabToDB(tab) {
+    if(!mongoDBAccess) return;
+    console.log("Sending TAb with ID " + tab._id)
+    let headers = new Headers();
+    headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
+    headers.set('Content-Type', 'application/json');
+
+    fetch(originDBLocation, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(tab)
+    })
+
+    fetch(shadowDBLocation, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(browserTabs.getTab(tab.shadowTabId))
+    })
+}

@@ -45,8 +45,8 @@ class Tabs{
      * @param originDbId{number}
      * @returns {*}
      */
-    addShadowTab(url, tabId, origin, originDbId){
-        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId);
+    addShadowTab(url, tabId, origin, originDbId, cookieStoreID){
+        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId, cookieStoreID);
         return this.tabs[tabId];
     }
 

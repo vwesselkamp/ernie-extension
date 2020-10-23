@@ -447,17 +447,23 @@ class WebRequest{
      * @returns {string}
      */
     get content(){
+        let urlParts;
         //splits at first occurrence of question mark
-        let urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
+        // TODO
+        if(this.url.indexOf('?') === -1){
+            urlParts = [this.url]
+        } else{
+            urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
 
-        try{
-            this.forwardedParams.forEach((parameter) => {
-                let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
-                urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
-            })
-        } catch (e) {
-            console.log(urlParts)
-            console.log(this.forwardedParams)
+            try{
+                this.forwardedParams.forEach((parameter) => {
+                    let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
+                    urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
+                })
+            } catch (e) {
+                console.log(urlParts)
+                console.log(this.forwardedParams)
+            }
         }
 
         return this.domain + " : " + urlParts.join('?')

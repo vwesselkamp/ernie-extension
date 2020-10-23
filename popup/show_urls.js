@@ -70,7 +70,7 @@ function insertWebRequest(request) {
   For requests without cookies, the requestElement will also have the class "url". For requests with cookies
   the "url" class will instead be assigned to a sub element, the summary.
    */
-  requestElement.className += request.category + " " + requestElement.partyString;
+  requestElement.className += request.category + " " + request.partyString;
 
   return requestElement;
 }
