@@ -18,6 +18,20 @@ function toggleExpansion(event) {
  * @returns {*}
  */
 function insertWebRequest(request) {
+  function completeUrlElement(urlElement) {
+    urlElement.innerHTML = request.content;
+    urlElement.className = "url "
+    urlElement.addEventListener("click", toggleExpansion)
+  }
+
+  function createCookieElement(cookie) {
+    let cookieElement = document.createElement("div");
+    cookieElement.innerText = cookie.content;
+    cookieElement.className = "cookie " + cookie.category + " " + request.category;
+    cookieElement.addEventListener("click", toggleExpansion)
+    return cookieElement;
+  }
+
   /**
    * The details HTML element can be opened to display the identifying cookies.
    * Append each identifying cookie as an individual element
@@ -25,37 +39,37 @@ function insertWebRequest(request) {
   function listCookies() {
     requestElement = document.createElement("details");
     let summary = document.createElement("summary");
-    summary.innerHTML = request.content;
-    summary.className = "url "
-    summary.addEventListener("click", toggleExpansion)
+    completeUrlElement(summary)
     requestElement.appendChild(summary)
 
     //TODO: refactor class names
     for (let cookie of request.cookies) {
-      let cookieElement = document.createElement("div");
-      cookieElement.innerText = cookie.content;
-      cookieElement.className = cookie.className + " " + request.category;
-      cookieElement.addEventListener("click", toggleExpansion)
+      let cookieElement = createCookieElement(cookie);
       requestElement.appendChild(cookieElement);
     }
+
+    return requestElement
   }
 
   function listOnlyUrl() {
     requestElement = document.createElement("div");
-    requestElement.innerHTML = request.content;
-    requestElement.className = "url "
-    requestElement.addEventListener("click", toggleExpansion)
+    completeUrlElement(requestElement);
+    return requestElement
   }
 
   let requestElement;
 
-  // If there are identifying cookies, list them. Otherwise just insert the element as a plain div
+  // If there are cookies, list them. Otherwise just insert the element as a plain div
   if (request.cookies.length > 0) {
-    listCookies();
+    requestElement = listCookies();
   } else {
-    listOnlyUrl();
+    requestElement = listOnlyUrl();
   }
-  requestElement.className += request.className
+  /*
+  For requests without cookies, the requestElement will also have the class "url". For requests with cookies
+  the "url" class will instead be assigned to a sub element, the summary.
+   */
+  requestElement.className += request.category + " " + requestElement.partyString;
 
   return requestElement;
 }

@@ -96,10 +96,10 @@ class WebRequest{
                     if(existingCookie){
                         this.cookies.push(existingCookie)
                     } else {
-                        this.cookies.push(new Cookie(cookie[0].trim(), cookie[1].trim(), SEND));
+                        this.cookies.push(new Cookie(cookie[0].trim(), cookie[1].trim(), Cookie.Mode.SEND));
                     }
                 } else {
-                    this.cookies.push(new Cookie(cookie[0].trim(), "", SEND));
+                    this.cookies.push(new Cookie(cookie[0].trim(), "", Cookie.Mode.SEND));
                 }
             }
         }
@@ -152,10 +152,10 @@ class WebRequest{
                     if(existingCookie){
                         collectedCookies.push(existingCookie)
                     } else{
-                        collectedCookies.push(new Cookie(result[0].trim(), result[1].trim(), SET));
+                        collectedCookies.push(new Cookie(result[0].trim(), result[1].trim(), Cookie.Mode.SET));
                     }
                 } else {
-                    collectedCookies.push(new Cookie(result[0].trim(), "", SET));
+                    collectedCookies.push(new Cookie(result[0].trim(), "", Cookie.Mode.SET));
                 }
             } catch (e){
                 console.warn(e);
@@ -323,7 +323,12 @@ class WebRequest{
                 for(let value of this.urlSearchParams.values()) {
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
-                        this.forwardedParams.add(new Parameter(value, this.predecessor.domain));
+                        if(this.predecessor){
+                            this.forwardedParams.add(new Parameter(value, this.predecessor.domain));
+                        }
+                        else {
+                            this.forwardedParams.add(new Parameter(value, browserTabs.getTab(this.browserTabId)));
+                        }
                         isSendAsParam = true;
                     }
                 }
@@ -458,11 +463,8 @@ class WebRequest{
         return this.domain + " : " + urlParts.join('?')
     }
 
-    get className(){
-        // category = type of tracking
-        // party = first or third party request
-        let party = this.thirdParty ? "third" : "first";
-        return this.category + " " + party;
+    get partyString(){
+        return this.thirdParty ? "third" : "first";
     }
 
     /**
@@ -570,78 +572,5 @@ class Response extends WebRequest{
             let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(request.completeReferer) //here is the difference because im not sure if referer set in answer
             return originRequest;
         }
-    }
-}
-
-let SEND = true;
-let SET = false;
-/**
- * Data about each cookie is stored in this class
- */
-class Cookie{
-    /**
-     * @param key {string} also called name of the cookie
-     * @param value {string}
-     * @param mode {boolean} SET or SEND depending of origin
-     */
-    constructor (key, value, mode) {
-        this.key = key;
-        this.value = value;
-        this.mode = mode;
-        this.identifying = false; // cookie default to being non identifying
-        this.safe = false; // cookies also default to non-safe until proven otherwise
-    }
-
-    /**
-     * For all the cookies from the background request, check if the key is the same (so same cookie)
-     * but value is different (so identifying possible).
-     * As we save all versions of a cookie set by a webpage, two different versions are treated like two different cookies
-     * That means we compare this cookie isolated from other versions of it. Some versions of a cookie might therefore be
-     * categorized as identifying while others are not.
-     * @param comparisonCookies{[Cookie]} from background request
-     */
-    compareCookiesFromShadowRequest(comparisonCookies){
-        for (let cookie of comparisonCookies){
-            if(cookie.key === this.key) {
-                if (cookie.value !== this.value && !this.safe) {
-                    // console.info("Found id cookie for " + this.url + ": " + this.key);
-                    this.identifying = true;
-                } else {
-                    this.safe = true;
-                    this.identifying = false;
-                }
-            }
-        }
-    }
-
-    get content(){
-        let mode = this.mode ? "SEND" : "SET";
-        return mode + " - " + this.key + ": " + this.value;
-    }
-
-    get className(){
-        let identifying = this.identifying ? "identifying" : "normal";
-        let safe = this.safe ? "safe" : "normal";
-        return "cookie " + identifying + " " + safe;
-    }
-
-    writeToDB(domain) {
-        let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
-        let cookie = {domain: domain, key: this.key, value: this.value};
-        cookieObjectStore.add(cookie);
-    }
-
-    setIfSafeCookie(safeCookie) {
-        if(safeCookie.key === this.key && safeCookie.value === this.value) {
-            this.safe = true;
-            this.identifying = false;
-        }
-    }
-}
-
-class Parameter{
-    constructor(value, originDomain) {
-        this.value = value;
-        this.originDomain = originDomain;
     }
 }
