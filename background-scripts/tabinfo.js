@@ -124,16 +124,28 @@ class GenericTab {
             return domainName;
         }
 
+        /**
+         * If the cookie cannot be found in the ones collected from any reqeust, it is assumed to have been set
+         * from Javascript, and added as such
+         * @param domain
+         * @param storageCookie
+         */
+        let addIfSetFromJS = (domain, storageCookie) => {
+            let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
+            if(!twin){
+                console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
+                let strippedDomainName = removeLeadingDots(storageCookie.domain);
+                this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
+                    .addCookies([new Cookie(storageCookie.name, storageCookie.value, Cookie.Mode.JS)])
+            }
+        }
+
+
+
         for(let domain of this.domains){
             this.getCookiesFromStore(domain.name).then(storageCookies => {
                 for(let storageCookie of storageCookies){
-                    let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
-                    if(!twin){
-                        console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
-                        let strippedDomainName = removeLeadingDots(storageCookie.domain);
-                        this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
-                            .addCookies([new Cookie(storageCookie.name, storageCookie.value, Cookie.Mode.JS)])
-                    }
+                    addIfSetFromJS(domain, storageCookie)
                 }
             })
         }
@@ -200,35 +212,47 @@ class OriginTab extends GenericTab{
          * Inside our container, a new hidden tab is created, that mirrors the request of the original tab
          * @param identity
          */
-        function createShadowTab(identity) {
-            browser.tabs.create({
+
+        let createContextualIdentity = () => {
+            return browser.contextualIdentities.create({
+                name: "shadow-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
+                color: "purple", //these two attributes are meaningless to us
+                icon: "briefcase"})
+        }
+
+        let createTab = (identity) => {
+            this.container = identity;
+            console.info("Created container for " + this.domain)
+            return browser.tabs.create({
                 active: false, // this opens the tab in the background
-                cookieStoreId: identity.cookieStoreId // this assigns the tab to our created contextual identity
-            }).then(shadowTab => {
-                this.shadowTabId = shadowTab.id;
-                return browser.tabs.hide(shadowTab.id); // this hides the tab
-            }).then(() => {
-                console.info("Creating shadow Tab for " + this.url)
-                browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id, identity.cookieStoreId);
-                //update sets the url of the shadowTab to that of the original request
-                return browser.tabs.update(this.shadowTabId, {
-                    url: this.url
-                })
-            }).catch(e => {
+                // this assigns the tab to our created contextual identity
+                cookieStoreId: identity.cookieStoreId })
+        }
+
+        let hideTab = (shadowTab) => {
+            this.shadowTabId = shadowTab.id;
+            // this hides the tab
+            return browser.tabs.hide(shadowTab.id);
+        }
+
+        let createShadowTabAndNavigate = () => {
+            console.info("Creating shadow Tab for " + this.url)
+            browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id, this.container.cookieStoreId);
+            //update sets the url of the shadowTab to that of the original request
+            return browser.tabs.update(this.shadowTabId, {
+                url: this.url
+            })
+        }
+
+
+        createContextualIdentity()
+            .then(createTab)
+            .then(hideTab)
+            .then(createShadowTabAndNavigate)
+            .catch(e => {
                 console.log(e)
                 this.removeContainerIfExists(); // this covered by .call() below
             });
-        }
-
-        browser.contextualIdentities.create({
-            name: "shadow-" + this.domain, // name doesn't have to be unique, as a unique id is assigned by the browser
-            color: "purple", //these two attributes are meaningless to us
-            icon: "briefcase"
-          }).then(identity => {
-              this.container = identity;
-              console.info("Created container for " + this.domain)
-              createShadowTab.call(this, identity);
-          });
     }
 
     /**
