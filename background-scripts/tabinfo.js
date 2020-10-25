@@ -277,16 +277,10 @@ class OriginTab extends GenericTab{
     evaluateRequests() {
         function basicTracking() {
             for (let request of this.requests) {
-                if (request.isBasicTracking()) {
-                    request.category = Categories.BASICTRACKING;
-                    browserTabs.getTab(request.browserTabId).markDomainAsTracker(request.domain);
-                }
+                request.setBasicTracking();
             }
             for (let response of this.responses) {
-                if (response.isBasicTracking()) {
-                    response.category = Categories.BASICTRACKING;
-                    browserTabs.getTab(response.browserTabId).markDomainAsTracker(response.domain);
-                }
+                response.setBasicTracking();
             }
         }
 
@@ -301,10 +295,10 @@ class OriginTab extends GenericTab{
 
         function setCookieSyncing() {
             for (let request of this.requests) {
-                request.setCookieSyncing();
+                request.setIdentifierSharingCategories();
             }
             for (let response of this.responses) {
-                response.setCookieSyncing();
+                response.setIdentifierSharingCategories();
             }
         }
 
