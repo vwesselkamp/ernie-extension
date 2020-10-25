@@ -30,25 +30,49 @@ class WebRequest{
         this.category = Categories.NONE;
         this.urlSearchParams = this.extractURLParams()
 
-        // we process all information from headers and store the request
+        // we process all information from headers
         // only later we can analyze it
         this.extractFromHeader(this.getHeader(webRequest));
         this.predecessor = this.getPredecessor();
+    }
 
+    get referer(){
+        if(this.completeReferer){
+            return getSecondLevelDomainFromUrl(this.completeReferer);
+        }
     }
 
     /**
-     * We split the URL parameters at any character not in the regex below, because they are assumed to be delimiters
-     * @returns {[]}
+     * @returns {string} the URl as it should be put in the popup. It searches first for all the occurences of forwarded parameters
+     * and marks them in HTML with span, so they can be later styled in a diferent colour.
+     * The search is done by with URL encoded element, as the forwardedParameters have been saved URL decoded. The HTML is then
+     * inserted in the plain string, such that is not URL encoded and stays plain hTML
      */
-    extractURLParams() {
-        let params = (new URL(this.url)).searchParams;
-        let splitParams = [];
-        for(let [key, value] of params){
-            let result = value.split(/[^a-zA-Z0-9-_.]/);
-            splitParams.push(...result);
+    get content(){
+        let urlParts;
+        //splits at first occurrence of question mark
+        // TODO
+        if(this.url.indexOf('?') === -1){
+            urlParts = [this.url]
+        } else{
+            urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
+
+            try{
+                this.forwardedParams.forEach((parameter) => {
+                    let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
+                    urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
+                })
+            } catch (e) {
+                console.log(urlParts)
+                console.log(this.forwardedParams)
+            }
         }
-        return splitParams;
+
+        return this.domain + " : " + urlParts.join('?')
+    }
+
+    get partyString(){
+        return this.thirdParty ? "third" : "first";
     }
 
     /**
@@ -56,6 +80,21 @@ class WebRequest{
      */
     getHeader(webRequest) {
         return webRequest.requestHeaders;
+    }
+
+    /**
+     * We split the URL parameters at any character not in the regex below, because they are assumed to be delimiters
+     * @returns {[string]}
+     */
+    extractURLParams() {
+        let params = (new URL(this.url)).searchParams;
+        let splitParams = [];
+        for(let value of params.values()){
+            // splits at what is considered delimiters in Imanes paper
+            let result = value.split(/[^a-zA-Z0-9-_.]/);
+            splitParams.push(...result);
+        }
+        return splitParams;
     }
 
     /**
@@ -90,18 +129,34 @@ class WebRequest{
                 .split(';')
                 .map(v => v.split(/=(.+)/));
             for (let cookie of rawCookies) {
-                //trims of white spaces at the edges of the key, which are left over from the regex
-                if(cookie[1]){
-                    let existingCookie = browserTabs.getTab(this.browserTabId).upsertDomain(this.domain).retrieveCookieIfExists(cookie[0].trim(), cookie[1].trim())
-                    if(existingCookie){
-                        this.cookies.push(existingCookie)
-                    } else {
-                        this.cookies.push(new Cookie(cookie[0].trim(), cookie[1].trim(), Cookie.Mode.SEND));
-                    }
-                } else {
-                    this.cookies.push(new Cookie(cookie[0].trim(), "", Cookie.Mode.SEND));
-                }
+                this.cookies.push(this.processCookie(cookie, Cookie.Mode.SEND));
             }
+        }
+    }
+
+    /**
+     * Checks first if we already encountered the cookie, in which case, the reference to the existing cookie is
+     * stored. This stops the cookie collection of the domain to contain duplicates. A single request can still contain
+     * duplicate cookies, as there might be some send as well as set again.
+     * Cookies with the same key but different value are treated as different cookies.
+     * @param cookie{[string]} contains key and value of the extracted raw cookie
+     * @return {Cookie} tha
+     */
+    processCookie(cookie, mode) {
+        // if there was no value for the cookie, assign empty string
+        if (!cookie[1]) cookie[1] = "";
+
+        let existingCookie =
+            browserTabs.getTab(this.browserTabId)
+                .upsertDomain(this.domain)
+                .retrieveCookieIfExists(cookie[0].trim(), cookie[1].trim()) //trims of white spaces at the edges of the key, which are left over from the regex
+
+        // the reference to the cookie is stored here, and on a later call of storeWebRequest() also in the
+        // corresponding domain of the tab
+        if (existingCookie) {
+            return existingCookie
+        } else {
+            return new Cookie(cookie[0].trim(), cookie[1].trim(), mode)
         }
     }
 
@@ -111,18 +166,12 @@ class WebRequest{
         }
     }
 
-
     findReferer(attribute) {
         if (attribute.name.toLowerCase() === "referer"){
             this.completeReferer = attribute.value;
         }
     }
 
-    get referer(){
-        if(this.completeReferer){
-            return getSecondLevelDomainFromUrl(this.completeReferer);
-        }
-    }
 
     /**
      * Example:
@@ -140,32 +189,61 @@ class WebRequest{
         // Line break occurred on walmart.com, and firefox recognizes it, even though it doesn't seem conform to the standard
         let lines = headerAttribute.value.split("\n");
         for (let line of lines) {
+            // split different parameters of the set-ccokie
             let result = line.split(';', 1)
             /*
             The following regex splits at every = that is followed by at least one character
             This way, only the first = is matched
+            This splits key and value from each other
              */
             result = result[0].split(/=(.+)/);
             try{
-                if(result[1]){
-                    let existingCookie = browserTabs.getTab(this.browserTabId).upsertDomain(this.domain).retrieveCookieIfExists(result[0], result[1])
-                    if(existingCookie){
-                        collectedCookies.push(existingCookie)
-                    } else{
-                        collectedCookies.push(new Cookie(result[0].trim(), result[1].trim(), Cookie.Mode.SET));
-                    }
-                } else {
-                    collectedCookies.push(new Cookie(result[0].trim(), "", Cookie.Mode.SET));
-                }
+                collectedCookies.push(this.processCookie(result, Cookie.Mode.SET));
             } catch (e){
-                console.warn(e);
-                console.log("Parsed cookie: " + result[0] + " " + result[1])
-                console.log("Line: " + line)
+                console.warn(e + "\nParsed cookie: " + result[0] + " " + result[1] + "\nLine: " + line);
             }
         }
         return collectedCookies;
     }
 
+    /**
+     * Gets either the request that caused a redirect to our request, or the referer, if either of the two exist
+     * @returns {WebRequest}
+     */
+    getPredecessor() {
+        let redirects = browserTabs.getTab(this.browserTabId).getRedirectsIfExist(this.id);
+        if (redirects) {
+            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
+            if (directPredecessor) {
+                return browserTabs.getTab(this.browserTabId).getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id);
+            } else{
+                console.warn("Redirected but redirect origin not found for: " + this.url)
+            }
+        } else if(this.completeReferer){
+            return  browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer);
+        }
+    }
+
+    /**
+     * If a response on this request has been found, its data is integrated into the request
+     * @param responseDetails
+     */
+    integrateResponse(responseDetails){
+        if(!responseDetails.responseHeaders) return;
+        for (let attribute of responseDetails.responseHeaders){
+            if (attribute.name.toLowerCase() === "set-cookie") {
+                let cookies = this.parseSetCookie(attribute)
+                this.cookies.push(...cookies);
+                // also update the domain cookie store, only with the newly added cookies
+                browserTabs.getTab(this.browserTabId).extendWebRequestCookies(this.domain, cookies)
+            }
+        }
+    }
+
+
+
+
+    // Everything below this is for the analysis and categorization
 
     setTrackingByTracker() {
         if (this.isTrackingInitiatedByTracker()) {
@@ -406,71 +484,6 @@ class WebRequest{
 
         return originalParameterValue === comparisonValue
             || originalParameterValue === base64EncodedValue;
-    }
-
-    /**
-     * Gets either the request that caused a redirect to our request, or the referer, if either of the two exist
-     * @returns {any}
-     */
-    getPredecessor() {
-        let redirects = browserTabs.getTab(this.browserTabId).getRedirectsIfExist(this.id);
-        if (redirects) {
-            let directPredecessor = redirects.find(redirect => redirect.destination === this.url);
-            if (directPredecessor) {
-                let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(directPredecessor.originUrl, directPredecessor.id)
-                return originRequest;
-            } else{
-                console.warn("What happened here")
-            }
-        } else if(this.completeReferer){
-            let originRequest = browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer)
-            return  originRequest;
-        }
-    }
-
-    integrateResponse(responseDetails){
-        if(!responseDetails.responseHeaders) return;
-        for (let attribute of responseDetails.responseHeaders){
-            if (attribute.name.toLowerCase() === "set-cookie") {
-                let cookies = this.parseSetCookie(attribute)
-                this.cookies.push(...cookies);
-                browserTabs.getTab(this.browserTabId).extendWebRequestCookies(this.domain, cookies)
-            }
-        }
-    }
-
-    /**
-     * Retruns the URl as it should be put in the popup. It searches first for all the occurences of forwarded parameters
-     * and marks them in HTML with span, so they can be later styled in a diferent colour.
-     * The search is done by with URL encoded element, as the forwardedParameters have been saved URL decoded. The HTML is then
-     * inserted in the plain string, such that is not URL encoded and stays plain hTML
-     * @returns {string}
-     */
-    get content(){
-        let urlParts;
-        //splits at first occurrence of question mark
-        // TODO
-        if(this.url.indexOf('?') === -1){
-            urlParts = [this.url]
-        } else{
-            urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
-
-            try{
-                this.forwardedParams.forEach((parameter) => {
-                    let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
-                    urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
-                })
-            } catch (e) {
-                console.log(urlParts)
-                console.log(this.forwardedParams)
-            }
-        }
-
-        return this.domain + " : " + urlParts.join('?')
-    }
-
-    get partyString(){
-        return this.thirdParty ? "third" : "first";
     }
 
     /**
