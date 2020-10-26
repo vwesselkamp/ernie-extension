@@ -264,7 +264,31 @@ function switchTab(event) {
   }
 }
 
+function openList(evt){
+    // Declare all variables
+  var i, tabcontent, tablinks;
 
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  if(evt.target.id === "umatched-button"){
+    document.getElementById("responses").style.display = "block";
+  } else if(evt.target.id === "cookies-button"){
+    document.getElementById("js-cookies").style.display = "block";
+  }
+
+  evt.target.className += " active";
+}
 /**
  * Whenever the popup receives a valid message from the background scripts, it rebuilds the page
  */
@@ -276,7 +300,11 @@ function evaluateMessage(message) {
 
 browser.runtime.onMessage.addListener(evaluateMessage);
 
+for(let link of document.getElementsByClassName("tablinks")){
+  link.addEventListener("click", openList);
+}
 document.getElementById("button").addEventListener("click", switchTab);
+document.getElementById("cookies-button").click();
 
 // gets the backgroundPage once on opening
 constructPageFromScratch();
