@@ -44,32 +44,40 @@ class WebRequest{
     }
 
     /**
-     * @returns {string} the URl as it should be put in the popup. It searches first for all the occurences of forwarded parameters
+     * @returns {string} the URl as it should be put in the popup.
+     */
+    get content(){
+        return this.markUpSharedIdentifiers(false);
+    }
+
+    get debugContent(){
+        return this.markUpSharedIdentifiers(true);
+    }
+    /**
+     * searches first for all the occurences of forwarded identifiers
      * and marks them in HTML with span, so they can be later styled in a diferent colour.
      * The search is done by with URL encoded element, as the forwardedParameters have been saved URL decoded. The HTML is then
      * inserted in the plain string, such that is not URL encoded and stays plain hTML
+     * @param debugMode{boolean} determines if forwarded parameters, that are not identifiers, are also marked
+     * @return {string}
      */
-    get content(){
-        let urlParts;
-        //splits at first occurrence of question mark
-        // TODO
-        if(this.url.indexOf('?') === -1){
-            urlParts = [this.url]
-        } else{
-            urlParts = [ this.url.substring(0, this.url.indexOf('?')), this.url.substring(this.url.indexOf('?') + 1) ]
+    markUpSharedIdentifiers(debugMode) {
+        let newURL = new URL(this.url)
+        let origin = newURL.origin
+        let pathAndQuery = newURL.pathname + newURL.search
 
-            try{
-                this.forwardedIdentifiers.forEach((parameter) => {
-                    let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
-                    urlParts[1] = urlParts[1].replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>" )
-                })
-            } catch (e) {
-                console.log(urlParts)
-                console.log(this.forwardedIdentifiers)
-            }
+        this.forwardedIdentifiers.forEach((parameter) => {
+            let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
+            pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>")
+        })
+
+        if(debugMode){
+            this.forwardedParams.forEach((parameter) => {
+                pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + "forwarded" + "\">" + parameter.value + "</span>")
+            })
         }
 
-        return this.domain + " : " + urlParts.join('?')
+        return this.domain + " : " + origin + '/' + pathAndQuery
     }
 
     get partyString(){

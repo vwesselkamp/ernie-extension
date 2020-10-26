@@ -135,6 +135,9 @@ html, body {
   color: purple;
 }
 
+.forwarded{
+  color: darkgrey;
+}
 
 .analytics .forwardedFirstPartyParams{
   color: goldenrod;

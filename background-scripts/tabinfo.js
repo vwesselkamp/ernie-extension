@@ -133,7 +133,7 @@ class GenericTab {
         let addIfSetFromJS = (domain, storageCookie) => {
             let twin = domain.retrieveCookieIfExists(storageCookie.name, storageCookie.value)
             if(!twin){
-                console.log("No corresponding cookie for \n " + JSON.stringify(storageCookie))
+                console.info("No corresponding cookie for \n " + JSON.stringify(storageCookie))
                 let strippedDomainName = removeLeadingDots(storageCookie.domain);
                 this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
                     .addCookies([new Cookie(storageCookie.name, storageCookie.value, Cookie.Mode.JS)])
@@ -267,7 +267,7 @@ class OriginTab extends GenericTab{
         }
         if(this.container){
             browser.contextualIdentities.remove(this.container.cookieStoreId)
-                .then(()=>console.log("removed for " + this.domain))
+                .then(()=>console.info("Removed container for " + this.domain))
                 .catch((e) => console.log(e));
         }
     }

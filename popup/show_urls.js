@@ -19,9 +19,13 @@ function toggleExpansion(event) {
  * @param request
  * @returns {*}
  */
-function insertWebRequest(request) {
+function insertWebRequest(request, debugMode) {
   function completeUrlElement(urlElement) {
-    urlElement.innerHTML = request.content;
+    if(debugMode){
+      urlElement.innerHTML = request.debugContent;
+    } else {
+      urlElement.innerHTML = request.content;
+    }
     urlElement.className = "url "
     urlElement.addEventListener("click", toggleExpansion)
   }
@@ -87,13 +91,13 @@ function insertJSCookie(domain, cookie){
   }
 }
 
-function insertRequest(request) {
-  let node = insertWebRequest(request);
+function insertRequest(request, debugMode) {
+  let node = insertWebRequest(request, debugMode);
   document.getElementById("request-urls").appendChild(node);
 }
 
-function insertResponse(response) {
-  let node = insertWebRequest(response);
+function insertResponse(response, debugMode) {
+  let node = insertWebRequest(response, debugMode);
   document.getElementById("response-urls").appendChild(node);
 }
 
@@ -127,7 +131,7 @@ function constructLoadingScreen() {
 /**
  * To fill in the content of the popup, clean all leftovers from previous page loads and set the new content
  */
-function constructAnalysis() {
+function constructAnalysis(debugMode) {
   document.getElementById("status").style.display = "none";
   document.getElementById("analyser").style.display = "block";
 
@@ -137,8 +141,8 @@ function constructAnalysis() {
 
 
   // inset all requests/responses collected so far
-  backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request));
-  backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response));
+  backgroundPage.browserTabs.currentTab.requests.forEach((request) => insertRequest(request, debugMode));
+  backgroundPage.browserTabs.currentTab.responses.forEach((response) => insertResponse(response, debugMode));
   backgroundPage.browserTabs.currentTab.domains.forEach((domain) => {
     domain.cookies.forEach(cookie => insertJSCookie(domain.name, cookie))
   });
@@ -173,22 +177,22 @@ function constructHeader() {
  * For the origin tab show the analysis section and either fill in the content or set a loading screen.
  */
 function constructContent() {
-  function constructShadowContent() {
+  function constructShadowContent(debugMode) {
     document.getElementById("origin").style.visibility = "hidden";
     // check if the analysis has already finished
-    if(DEBUG_MODE){
-      constructAnalysis();
+    if(debugMode){
+      constructAnalysis(debugMode);
     } else {
       document.getElementById("analyser").style.display = "none";
     }
   }
 
-  function constructOriginContent() {
+  function constructOriginContent(debugMode) {
     // check if the analysis has already finished
     document.getElementById("origin").style.visibility = "visible";
 
     if (backgroundPage.browserTabs.currentTab.isEvaluated()) {
-      constructAnalysis();
+      constructAnalysis(debugMode);
     } else {
       constructLoadingScreen();
     }
@@ -196,25 +200,11 @@ function constructContent() {
 
   }
 
-  getDebugMode();
-  if(backgroundPage.browserTabs.currentTab.shadowTabId){
-    constructOriginContent();
-  } else{
-    constructShadowContent();
-  }
-}
-
-/**
- * retrieves from local storage, if extension is in Debug mode, and should display more information
- */
-function getDebugMode(){
-  let debug = browser.storage.local.get('debug');
-  debug.then((res) => {
-    // to make debug mode default
-    if(res.debug === undefined) {
-      DEBUG_MODE = true;
-    } else {
-      DEBUG_MODE = res.debug;
+  backgroundPage.getDebugMode().then((debugMode) => {
+    if(backgroundPage.browserTabs.currentTab.shadowTabId){
+      constructOriginContent(debugMode);
+    } else{
+      constructShadowContent(debugMode);
     }
   });
 }
@@ -286,7 +276,6 @@ function evaluateMessage(message) {
 
 browser.runtime.onMessage.addListener(evaluateMessage);
 
-let DEBUG_MODE = true; // defaults to true
 document.getElementById("button").addEventListener("click", switchTab);
 
 // gets the backgroundPage once on opening

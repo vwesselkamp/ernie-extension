@@ -78,7 +78,6 @@ function setDatabaseAccess() {
     var user = browser.storage.local.get('user');
     user.then((res) => {
         mongoDBUser = res.user || 'admin';
-        console.log(mongoDBUser)
     });
 
     var password = browser.storage.local.get('password');
@@ -125,4 +124,17 @@ function sendTabToDB(tab) {
         headers: headers,
         body: JSON.stringify(browserTabs.getTab(tab.shadowTabId))
     })
+}
+
+/**
+ * retrieves from local storage, if extension is in Debug mode, and should display more information
+ */
+async function getDebugMode(){
+    let res = await browser.storage.local.get('debug');
+    // to make debug mode default
+    if(res.debug === undefined) {
+        return true;
+    } else {
+        return res.debug;
+    }
 }

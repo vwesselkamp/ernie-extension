@@ -36,7 +36,7 @@ function removeOldIdentities(identities) {
                 .catch((e) => console.log(e));
         }
     }
-    console.log("Removed old identities");
+    console.info("Removed old identities");
 }
 
 browser.contextualIdentities.query({})
