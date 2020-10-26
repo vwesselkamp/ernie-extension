@@ -16,7 +16,6 @@ function saveOptions(e) {
 /**
  * When the options page is opened, this function is executed to display either the values form localStorage in the
  * fields, or the default values
- * TODO: Generalize
  */
 function restoreOptions() {
     var origin = browser.storage.local.get('originLocation');

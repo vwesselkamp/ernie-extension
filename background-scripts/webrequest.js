@@ -66,15 +66,16 @@ class WebRequest{
         let origin = newURL.origin
         let pathAndQuery = newURL.pathname + newURL.search
 
-        this.forwardedIdentifiers.forEach((parameter) => {
-            let association = parameter.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
-            pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + association + "\">" + parameter.value + "</span>")
-        })
-
+        //TODO: params in forwardedParams and forwardedIDentifiers
         if(debugMode){
-            this.forwardedParams.forEach((parameter) => {
+            for(let parameter of this.forwardedParams){
                 pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + "forwarded" + "\">" + parameter.value + "</span>")
-            })
+            }
+        }
+
+        for(let identifier of this.forwardedIdentifiers){
+            let association = identifier.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
+            pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(identifier.value), "<span class=\"" + association + "\">" + identifier.value + "</span>")
         }
 
         return this.domain + " : " + origin + pathAndQuery
@@ -92,22 +93,26 @@ class WebRequest{
     }
 
     /**
-     * We split the URL parameters at any character not in the regex below, because they are assumed to be delimiters
+     * We split the URL parameters at any character not in the regex , because they are assumed to be delimiters
+     * We do the same for all the path elements as identifiers might be forwarded there as well
      * @returns {[string]}
      */
     extractURLParamsAndPath() {
-        let newUrl = new URL(this.url);
-        let splitParams = [];
-        for(let [key, value] of newUrl.searchParams){
+        function processAndStore(value) {
             // splits at what is considered delimiters in Imanes paper
             let result = value.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
+
+        let newUrl = new URL(this.url);
+        let splitParams = [];
+        for(let value of newUrl.searchParams.values()){
+            processAndStore(value)
+        }
+
         for(let path of newUrl.pathname.split('/')){
-            console.log(path)
-            // splits at what is considered delimiters in Imanes paper
-            let result = path.split(/[^a-zA-Z0-9-_.]/);
-            splitParams.push(...result);
+            if(path === "") continue;
+            processAndStore(path);
         }
         return splitParams;
     }
@@ -360,7 +365,6 @@ class WebRequest{
         }
 
         let originRequest = this.getRedirectOrigin();
-        // todo: what about the parameters that are forwarded but never linked to cookies
         if (originRequest) {
             if (originRequest.thirdParty ) {
                 // if it shares url parameters even further backwards, we check if it could belong into
@@ -453,7 +457,9 @@ class WebRequest{
                     if(forwardedIdentifier){
                         this.forwardedIdentifiers.add(forwardedIdentifier);
                     } else {
-                        this.forwardedParams.add(new Parameter(originalParam, this.predecessor.domain))
+                        if(![...this.forwardedParams].some(param => param.value === originalParam)){
+                            this.forwardedParams.add(new Parameter(originalParam, this.predecessor.domain))
+                        }
                     }
                     isForwarded = true; // found at least one forwarded parameter
                 }
@@ -566,7 +572,9 @@ class WebRequest{
             if(forwardedIdentifier){
                 this.forwardedIdentifiers.add(forwardedIdentifier);
             } else {
-                this.forwardedParams.add(new Parameter(param, originRequest.domain))
+                if(![...this.forwardedParams].some(parameter => parameter.value === param)) {
+                    this.forwardedParams.add(new Parameter(param, originRequest.domain))
+                }
             }
         }
     }
