@@ -1,3 +1,15 @@
+/*
+This file contains 3 different databases:
+    1. IndexedDB for the safe cookies
+    2. localStorage for the extension settings
+    3. an external REST DB for the collected data
+ */
+
+
+/*
+1. IndexedDB for the safe cookies
+ */
+
 // globally available db access
 var db;
 
@@ -54,6 +66,12 @@ request.onupgradeneeded = function(event) {
     objectStore.createIndex("domain", "domain", { unique: false });
 };
 
+
+
+/*
+2. localStorage for configuration
+ */
+
 // Also handle external database access
 let mongoDBUser;
 let mongoDBPassword;
@@ -65,22 +83,22 @@ let mongoDBAccess = false;
  * Sets the vars we need to access the DB by retrieving them from the local storage
  */
 function setDatabaseAccess() {
-    var originLocation = browser.storage.local.get('originLocation');
+    const originLocation = browser.storage.local.get('originLocation');
     originLocation.then((res) => {
         originDBLocation = res.location || 'http://localhost:8080/extension';
     });
 
-    var shadowLocation = browser.storage.local.get('shadowLocation');
+    const shadowLocation = browser.storage.local.get('shadowLocation');
     shadowLocation.then((res) => {
         shadowDBLocation = res.location || 'http://localhost:8080/shadow-tabs';
     });
 
-    var user = browser.storage.local.get('user');
+    const user = browser.storage.local.get('user');
     user.then((res) => {
         mongoDBUser = res.user || 'admin';
     });
 
-    var password = browser.storage.local.get('password');
+    const password = browser.storage.local.get('password');
     password.then((res) => {
         mongoDBPassword = res.password || 'secret';
     });
@@ -88,6 +106,12 @@ function setDatabaseAccess() {
 browser.storage.onChanged.addListener(setDatabaseAccess);
 
 setDatabaseAccess();
+
+
+
+/*
+3. External database
+ */
 
 //TODO
 fetch("http://localhost:8080/ping")
@@ -124,17 +148,4 @@ function sendTabToDB(tab) {
         headers: headers,
         body: JSON.stringify(browserTabs.getTab(tab.shadowTabId))
     })
-}
-
-/**
- * retrieves from local storage, if extension is in Debug mode, and should display more information
- */
-async function getDebugMode(){
-    let res = await browser.storage.local.get('debug');
-    // to make debug mode default
-    if(res.debug === undefined) {
-        return true;
-    } else {
-        return res.debug;
-    }
 }

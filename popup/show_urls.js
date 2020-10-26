@@ -200,7 +200,7 @@ function constructContent() {
 
   }
 
-  backgroundPage.getDebugMode().then((debugMode) => {
+  getDebugMode().then((debugMode) => {
     if(backgroundPage.browserTabs.currentTab.shadowTabId){
       constructOriginContent(debugMode);
     } else{
@@ -295,6 +295,19 @@ function openList(evt){
 function evaluateMessage(message) {
   if (message.analysis || message.reload) {
     constructPage()
+  }
+}
+
+/**
+ * retrieves from local storage, if extension is in Debug mode, and should display more information
+ */
+async function getDebugMode(){
+  let res = await browser.storage.local.get('debug');
+  // to make debug mode default
+  if(res.debug === undefined) {
+    return true;
+  } else {
+    return res.debug;
   }
 }
 

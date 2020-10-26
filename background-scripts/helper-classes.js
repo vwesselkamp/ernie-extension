@@ -163,31 +163,31 @@ class Domain {
      */
     setSafeCookiesForDomain() {
         return new Promise((resolve, reject) => {
+            /**
+             * For each safe cookie from our query result, check if the same cookie was send in our request
+             * @param queryResult contain all safe cookies from the domain of our request
+             */
+            let compareQueryWithDomainCookies = (queryResult) => {
+                const cursor = queryResult.target.result;
+                if (cursor) {
+                    this.cookies.forEach(cookie => {
+                        cookie.setIfSafeCookie.call(cookie, cursor.value)
+                    })
+                    cursor.continue();
+                } else {
+                    // reached the end of the cursor so we exit the callback function and can resole the promise at the
+                    // same time
+                    resolve(this.cookies)
+                }
+            }
+
             // index over the domains of the safe cookies
             const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("domain");
             // filters all safe cookies for the request url
             const indexRange = IDBKeyRange.only(this.name);
             let idbRequest = cookieIndex.openCursor(indexRange);
-            let domain = this;
-            /**
-             * TODO: find a way to extract this method
-             * For each safe cookie from our query result, check if the same cookie was send in our request
-             * @param queryResult contain all safe cookies from the domain of our request
-             */
-            idbRequest.onsuccess = function (queryResult) {
-                const cursor = queryResult.target.result;
-                if (cursor) {
-                    for (let cookie of domain.cookies) {
-                        //call() allows to define the content of "this" in the called method
-                        cookie.setIfSafeCookie.call(cookie, cursor.value)
-                    }
-                    cursor.continue();
-                } else {
-                    // reached the end of the cursor so we exit the callback function and can resole the promise at the
-                    // same time
-                    resolve(domain.cookies)
-                }
-            };
+
+            idbRequest.onsuccess = compareQueryWithDomainCookies;
             idbRequest.onerror = event => reject(event)
         });
     }

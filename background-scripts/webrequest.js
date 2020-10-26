@@ -27,7 +27,7 @@ class WebRequest{
         this.thirdParty = this.isThirdParty();
         this.cookies = [];
         this.forwardedIdentifiers = new Set();
-        this.forwardedParams = new Set();
+        this.forwardedParams = [];
         this.category = Categories.NONE;
         this.urlParamsAndPath = this.extractURLParamsAndPath()
 
@@ -66,7 +66,7 @@ class WebRequest{
         let origin = newURL.origin
         let pathAndQuery = newURL.pathname + newURL.search
 
-        //TODO: params in forwardedParams and forwardedIDentifiers
+        //TODO: params in forwardedParams and forwardedIdentifiers
         if(debugMode){
             for(let parameter of this.forwardedParams){
                 pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + "forwarded" + "\">" + parameter.value + "</span>")
@@ -74,6 +74,7 @@ class WebRequest{
         }
 
         for(let identifier of this.forwardedIdentifiers){
+            // create html class name for the forwarded parameter depending of origin domain
             let association = identifier.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
             pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(identifier.value), "<span class=\"" + association + "\">" + identifier.value + "</span>")
         }
@@ -199,7 +200,7 @@ class WebRequest{
      Max-Age=31557600; Domain=.yahoo.com; Path=/; SameSite=None; Secure; HttpOnly
      We are interested only in the first part which contains key=value; of the cookie
      Separate only at the first =
-     TODO: There seems to be the option to have several cookies in the same "set-cookies" attribute, separated by a , or
+     There seems to be the option to have several cookies in the same "set-cookies" attribute, separated by a , or
      by a line break.
      * @param headerAttribute is the value of the header attribute
      * @returns {[Cookie]} the cookies from this attribute
@@ -207,7 +208,7 @@ class WebRequest{
     parseSetCookie(headerAttribute) {
         let collectedCookies = [];
         // Line break occurred on walmart.com, and firefox recognizes it, even though it doesn't seem conform to the standard
-        let lines = headerAttribute.value.split("\n");
+        let lines = headerAttribute.value.split(',');
         for (let line of lines) {
             // split different parameters of the set-ccokie
             let result = line.split(';', 1)
@@ -449,17 +450,14 @@ class WebRequest{
             for(let predecessorParam of this.predecessor.urlParamsAndPath.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.info("Forwarded parameter " + originalParam)
-                    // if the forwarded Parameter is a forwarded identifier of the predecesseor request, it is also
+                    // if the forwarded Parameter is a forwarded identifier of the predecessor request, it is also
                     // an identifier for this request, as that means it has been linked to a cookie at a previous
                     // point in the chain. Otherwise, it is just a forwarded parameter
-                    // TODO: set characteristics?
                     let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam)
                     if(forwardedIdentifier){
                         this.forwardedIdentifiers.add(forwardedIdentifier);
-                    } else {
-                        if(![...this.forwardedParams].some(param => param.value === originalParam)){
-                            this.forwardedParams.add(new Parameter(originalParam, this.predecessor.domain))
-                        }
+                    } else if(!this.forwardedParams.some(param => param.value === originalParam)){
+                        this.forwardedParams.add(new Parameter(originalParam, this.predecessor.domain))
                     }
                     isForwarded = true; // found at least one forwarded parameter
                 }
@@ -571,10 +569,8 @@ class WebRequest{
             let forwardedIdentifier = originRequest.retrieveParamIfExists(param)
             if(forwardedIdentifier){
                 this.forwardedIdentifiers.add(forwardedIdentifier);
-            } else {
-                if(![...this.forwardedParams].some(parameter => parameter.value === param)) {
-                    this.forwardedParams.add(new Parameter(param, originRequest.domain))
-                }
+            } else if(!this.forwardedParams.some(parameter => parameter.value === param)){
+                this.forwardedParams.add(new Parameter(param, originRequest.domain))
             }
         }
     }
