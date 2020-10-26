@@ -29,7 +29,7 @@ class WebRequest{
         this.forwardedIdentifiers = new Set();
         this.forwardedParams = new Set();
         this.category = Categories.NONE;
-        this.urlSearchParams = this.extractURLParams()
+        this.urlParamsAndPath = this.extractURLParamsAndPath()
 
         // we process all information from headers
         // only later we can analyze it
@@ -77,7 +77,7 @@ class WebRequest{
             })
         }
 
-        return this.domain + " : " + origin + '/' + pathAndQuery
+        return this.domain + " : " + origin + pathAndQuery
     }
 
     get partyString(){
@@ -95,12 +95,18 @@ class WebRequest{
      * We split the URL parameters at any character not in the regex below, because they are assumed to be delimiters
      * @returns {[string]}
      */
-    extractURLParams() {
-        let params = (new URL(this.url)).searchParams;
+    extractURLParamsAndPath() {
+        let newUrl = new URL(this.url);
         let splitParams = [];
-        for(let value of params.values()){
+        for(let [key, value] of newUrl.searchParams){
             // splits at what is considered delimiters in Imanes paper
             let result = value.split(/[^a-zA-Z0-9-_.]/);
+            splitParams.push(...result);
+        }
+        for(let path of newUrl.pathname.split('/')){
+            console.log(path)
+            // splits at what is considered delimiters in Imanes paper
+            let result = path.split(/[^a-zA-Z0-9-_.]/);
             splitParams.push(...result);
         }
         return splitParams;
@@ -416,7 +422,7 @@ class WebRequest{
             // split again at the delimiter defined by Imane
             let splitCookie = predecessorCookie.value.split(/[^a-zA-Z0-9-_.]/);
             for(let split of splitCookie){
-                for(let value of this.urlSearchParams.values()) {
+                for(let value of this.urlParamsAndPath.values()) {
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
                         // add the forwarded parameter with the origin information
@@ -435,8 +441,8 @@ class WebRequest{
      */
     isParamsForwarded(){
         let isForwarded = false;
-        for(let originalParam of this.urlSearchParams.values()) {
-            for(let predecessorParam of this.predecessor.urlSearchParams.values()){
+        for(let originalParam of this.urlParamsAndPath.values()) {
+            for(let predecessorParam of this.predecessor.urlParamsAndPath.values()){
                 if(this.isParamsEqual(originalParam, predecessorParam)){
                     console.info("Forwarded parameter " + originalParam)
                     // if the forwarded Parameter is a forwarded identifier of the predecesseor request, it is also
@@ -555,7 +561,7 @@ class WebRequest{
      * @param originRequest{WebRequest}
      */
     getParamSharedEvenFurther(originRequest) {
-        for(let param of this.urlSearchParams){
+        for(let param of this.urlParamsAndPath){
             let forwardedIdentifier = originRequest.retrieveParamIfExists(param)
             if(forwardedIdentifier){
                 this.forwardedIdentifiers.add(forwardedIdentifier);
