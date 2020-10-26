@@ -457,7 +457,7 @@ class WebRequest{
                     if(forwardedIdentifier){
                         this.forwardedIdentifiers.add(forwardedIdentifier);
                     } else if(!this.forwardedParams.some(param => param.value === originalParam)){
-                        this.forwardedParams.add(new Parameter(originalParam, this.predecessor.domain))
+                        this.forwardedParams.push(new Parameter(originalParam, this.predecessor.domain))
                     }
                     isForwarded = true; // found at least one forwarded parameter
                 }
@@ -570,7 +570,7 @@ class WebRequest{
             if(forwardedIdentifier){
                 this.forwardedIdentifiers.add(forwardedIdentifier);
             } else if(!this.forwardedParams.some(parameter => parameter.value === param)){
-                this.forwardedParams.add(new Parameter(param, originRequest.domain))
+                this.forwardedParams.push(new Parameter(param, originRequest.domain))
             }
         }
     }
