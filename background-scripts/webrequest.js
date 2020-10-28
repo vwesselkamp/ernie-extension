@@ -489,8 +489,34 @@ class WebRequest{
          * @returns {boolean}
          */
         let isGASharing = () => {
+            /*
+            These are domains named by google on https://policies.google.com/technologies/types as of the
+            28/10/20, where they state they set cookies. As I noticed google cookies forwarded in the same way as a GA
+            cookie also to other google owned domains, I propose to use the whole list for comparison. An example of this
+            would be the cookie _gcl_au, forwarded to doubleclick.net and adservice.google.com
+             */
+            let googleDomains = [
+                "admob.com",
+                "adsensecustomsearchads.com",
+                "adwords.com",
+                "doubleclick.net",
+                "google.com",
+                "googleadservices.com",
+                "googleapis.com",
+                "googlesyndication.com",
+                "googletagmanager.com",
+                "googletagservices.com",
+                "googletraveladservices.com",
+                "googleusercontent.com",
+                "google-analytics.com",
+                "gstatic.com",
+                "urchin.com",
+                "youtube.com",
+                "ytimg.com",
+                "non-identifying.com" // for the test page
+            ]
             // the second domain is allowed for the test website
-            if(this.domain === "google-analytics.com" || this.domain === "non-identifying.com"){
+            if(googleDomains.includes(this.domain)){
                 let splitValue = comparisonValue.split('.');
                 let cutParam = splitValue.slice(Math.max(splitValue.length - 2, 0)).join('.')
                 return originalParameterValue === cutParam
@@ -519,7 +545,10 @@ class WebRequest{
         if(originalParameterValue.length < MIN_LENGTH || comparisonValue.length < MIN_LENGTH) return false;
         if(originalParameterValue === "true" || originalParameterValue === "false") return false;
 
-        if(isGASharing()) return true;
+        if(isGASharing()) {
+            console.log("GA sharing for domain " + this.domain)
+            return true;
+        }
 
         if(isBase64EncodedSharing()) return true
 
