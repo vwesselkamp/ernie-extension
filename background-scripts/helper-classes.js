@@ -101,9 +101,20 @@ class Parameter{
      * @param value{string} of the parameter
      * @param originDomain{string} is the URLs domain
      */
-    constructor(value, originDomain) {
+    constructor(value, type) {
         this.value = value;
+        this.type = type
+    }
+
+    static ParameterType = Object.freeze({
+        "URL_KEY":"url_key",
+        "URL_VALUE":"url_value",
+        "PATH":"path",
+    })
+
+    addOrigin(originDomain){
         this.originDomain = originDomain;
+        return this;
     }
 }
 

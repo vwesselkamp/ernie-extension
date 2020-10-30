@@ -65,6 +65,8 @@ class WebRequest{
         let newURL = new URL(this.url)
         let origin = newURL.origin
         let pathAndQuery = newURL.pathname + newURL.search
+        console.log(this.urlParamsAndPath)
+        console.log(this.forwardedIdentifiers)
         //TODO: params in forwardedParams and forwardedIdentifiers
         if(debugMode){
             for(let parameter of this.forwardedParams){
@@ -102,22 +104,24 @@ class WebRequest{
      * @returns {[string]}
      */
     extractURLParamsAndPath() {
-        function processAndStore(value) {
+        function processAndStore(value, type) {
             // splits at what is considered delimiters in Imanes paper
             let result = value.split(/[^a-zA-Z0-9-_.]/);
-            splitParams.push(...result);
+            result.forEach(value => {
+                splitParams.push(new Parameter(value, type))
+            })
         }
 
         let newUrl = new URL(this.url);
         let splitParams = [];
-        for(let [key, value] of newUrl.searchParams.values()){
-            processAndStore(value)
-            processAndStore(key)
+        for(let [key, value] of newUrl.searchParams){
+            processAndStore(value, Parameter.ParameterType.URL_VALUE)
+            processAndStore(key, Parameter.ParameterType.URL_KEY)
         }
 
         for(let path of newUrl.pathname.split('/')){
             if(path === "") continue;
-            processAndStore(path);
+            processAndStore(path, Parameter.ParameterType.PATH);
         }
         return splitParams;
     }
@@ -431,13 +435,13 @@ class WebRequest{
             // split again at the delimiter defined by Imane
             let splitCookie = predecessorCookie.value.split(/[^a-zA-Z0-9-_.]/);
             for(let split of splitCookie){
-                for(let value of this.urlParamsAndPath.values()) {
-                    if (this.isParamsEqual(value, split)) {
-                        console.info("FOUND ONE for " + this.url + "   " + value)
+                for(let parameter of this.urlParamsAndPath) {
+                    if (this.isParamsEqual(parameter.value, split)) {
+                        console.info("FOUND ONE for " + this.url + "   " + parameter.value)
                         // add the forwarded parameter with the origin information
-                        let identifier = this.retrieveParamIfExists(value);
+                        let identifier = this.retrieveParamIfExists(parameter.value);
                         if (!identifier) {
-                            this.forwardedIdentifiers.push(new Parameter(value, originDomain));
+                            this.forwardedIdentifiers.push(parameter.addOrigin(originDomain));
                         }
                         isSendAsParam = true; // found at least one forwarded cookie, but continue to find all
                     }
@@ -453,18 +457,18 @@ class WebRequest{
      */
     isParamsForwarded(){
         let isForwarded = false;
-        for(let originalParam of this.urlParamsAndPath.values()) {
-            for(let predecessorParam of this.predecessor.urlParamsAndPath.values()){
-                if(this.isParamsEqual(originalParam, predecessorParam)){
-                    console.info("Forwarded parameter " + originalParam)
+        for(let originalParam of this.urlParamsAndPath) {
+            for(let predecessorParam of this.predecessor.urlParamsAndPath){
+                if(this.isParamsEqual(originalParam.value, predecessorParam.value)){
+                    console.info("Forwarded parameter " + originalParam.value)
                     // if the forwarded Parameter is a forwarded identifier of the predecessor request, it is also
                     // an identifier for this request, as that means it has been linked to a cookie at a previous
                     // point in the chain. Otherwise, it is just a forwarded parameter
-                    let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam)
-                    if(forwardedIdentifier && ! this.containsParam(originalParam)){
+                    let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam.value)
+                    if(forwardedIdentifier && ! this.containsParam(originalParam.value)){
                         this.forwardedIdentifiers.push(forwardedIdentifier);
-                    } else if(!this.forwardedParams.some(param => param.value === originalParam)){
-                        this.forwardedParams.push(new Parameter(originalParam, this.predecessor.domain))
+                    } else if(!this.forwardedParams.some(param => param.value === originalParam.value)){
+                        this.forwardedParams.push(originalParam.addOrigin(this.predecessor.domain))
                     }
                     isForwarded = true; // found at least one forwarded parameter
                 }
@@ -601,11 +605,11 @@ class WebRequest{
      */
     getParamSharedEvenFurther(originRequest) {
         for(let param of this.urlParamsAndPath){
-            let forwardedIdentifier = originRequest.retrieveParamIfExists(param)
-            if(forwardedIdentifier && ! this.containsParam(param)){
+            let forwardedIdentifier = originRequest.retrieveParamIfExists(param.value)
+            if(forwardedIdentifier && ! this.containsParam(param.value)){
                 this.forwardedIdentifiers.push(forwardedIdentifier);
-            } else if(!this.forwardedParams.some(parameter => parameter.value === param)){
-                this.forwardedParams.push(new Parameter(param, originRequest.domain))
+            } else if(!this.forwardedParams.some(parameter => parameter.value === param.value)){
+                this.forwardedParams.push(param.addOrigin(originRequest.domain))
             }
         }
     }
