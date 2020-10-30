@@ -68,6 +68,10 @@ class WebRequest{
         //TODO: params in forwardedParams and forwardedIdentifiers
         if(debugMode){
             for(let parameter of this.forwardedParams){
+                // dont mark parameters that will later also be marked as identifiers
+                if(this.forwardedIdentifiers
+                    .some(identifier => identifier.value === parameter.value
+                        && identifier.domain === parameter.domain)) continue;
                 pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(parameter.value), "<span class=\"" + "forwarded" + "\">" + parameter.value + "</span>")
             }
         }
@@ -106,8 +110,9 @@ class WebRequest{
 
         let newUrl = new URL(this.url);
         let splitParams = [];
-        for(let value of newUrl.searchParams.values()){
+        for(let [key, value] of newUrl.searchParams.values()){
             processAndStore(value)
+            processAndStore(key)
         }
 
         for(let path of newUrl.pathname.split('/')){
