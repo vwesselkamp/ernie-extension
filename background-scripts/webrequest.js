@@ -26,7 +26,7 @@ class WebRequest{
         //not possible to inline this, because when sending it as a runtime message to the popup script, the methods are no longer available
         this.thirdParty = this.isThirdParty();
         this.cookies = [];
-        this.forwardedIdentifiers = new Set();
+        this.forwardedIdentifiers = [];
         this.forwardedParams = [];
         this.category = Categories.NONE;
         this.urlParamsAndPath = this.extractURLParamsAndPath()
@@ -65,7 +65,6 @@ class WebRequest{
         let newURL = new URL(this.url)
         let origin = newURL.origin
         let pathAndQuery = newURL.pathname + newURL.search
-
         //TODO: params in forwardedParams and forwardedIdentifiers
         if(debugMode){
             for(let parameter of this.forwardedParams){
@@ -207,8 +206,8 @@ class WebRequest{
      */
     parseSetCookie(headerAttribute) {
         let collectedCookies = [];
-        // Line break occurred on walmart.com, and firefox recognizes it, even though it doesn't seem conform to the standard
-        let lines = headerAttribute.value.split(',');
+        // Firefox seems to forward several set-cookie headers at once, separated by a line break
+        let lines = headerAttribute.value.split('\n');
         for (let line of lines) {
             // split different parameters of the set-ccokie
             let result = line.split(';', 1)
@@ -431,7 +430,10 @@ class WebRequest{
                     if (this.isParamsEqual(value, split)) {
                         console.info("FOUND ONE for " + this.url + "   " + value)
                         // add the forwarded parameter with the origin information
-                        this.forwardedIdentifiers.add(new Parameter(value, originDomain));
+                        let identifier = this.retrieveParamIfExists(value);
+                        if (!identifier) {
+                            this.forwardedIdentifiers.push(new Parameter(value, originDomain));
+                        }
                         isSendAsParam = true; // found at least one forwarded cookie, but continue to find all
                     }
                 }
@@ -454,8 +456,8 @@ class WebRequest{
                     // an identifier for this request, as that means it has been linked to a cookie at a previous
                     // point in the chain. Otherwise, it is just a forwarded parameter
                     let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam)
-                    if(forwardedIdentifier){
-                        this.forwardedIdentifiers.add(forwardedIdentifier);
+                    if(forwardedIdentifier && ! this.containsParam(originalParam)){
+                        this.forwardedIdentifiers.push(forwardedIdentifier);
                     } else if(!this.forwardedParams.some(param => param.value === originalParam)){
                         this.forwardedParams.push(new Parameter(originalParam, this.predecessor.domain))
                     }
@@ -538,7 +540,6 @@ class WebRequest{
         }
 
 
-
         const MIN_LENGTH = 4;
 
         // too short or pointless values
@@ -596,20 +597,21 @@ class WebRequest{
     getParamSharedEvenFurther(originRequest) {
         for(let param of this.urlParamsAndPath){
             let forwardedIdentifier = originRequest.retrieveParamIfExists(param)
-            if(forwardedIdentifier){
-                this.forwardedIdentifiers.add(forwardedIdentifier);
+            if(forwardedIdentifier && ! this.containsParam(param)){
+                this.forwardedIdentifiers.push(forwardedIdentifier);
             } else if(!this.forwardedParams.some(parameter => parameter.value === param)){
                 this.forwardedParams.push(new Parameter(param, originRequest.domain))
             }
         }
     }
 
-    retrieveParamIfExists(value){
-        for(let param of this.forwardedIdentifiers.values()){
-            if(param.value === value){
-                return param;
-            }
-        }
+    // TODO refactor
+    retrieveParamIfExists(parameterValue){
+        return this.forwardedIdentifiers.find(identifier => identifier.value === parameterValue)
+    }
+
+    containsParam(parameterValue){
+        return this.forwardedIdentifiers.some(identifier => identifier.value === parameterValue)
     }
 }
 
