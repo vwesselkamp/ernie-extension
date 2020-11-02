@@ -319,5 +319,16 @@ for(let link of document.getElementsByClassName("tablinks")){
 document.getElementById("button").addEventListener("click", switchTab);
 document.getElementById("cookies-button").click();
 
+let analysis_buttons = document.getElementsByClassName("analysis-button")
+
+function sendAnalysis(event) {
+  let currentTab = backgroundPage.browserTabs.currentTab;
+  currentTab.doctorsAnalysis = event.target.id;
+  backgroundPage.sendTabToDB(currentTab);
+}
+
+for(let button of analysis_buttons){
+  button.addEventListener("click", sendAnalysis);
+}
 // gets the backgroundPage once on opening
 constructPageFromScratch();

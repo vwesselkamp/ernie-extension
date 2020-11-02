@@ -26,6 +26,13 @@ html, body {
 }
 
 
+/* Style the buttons that are used to open the tab content */
+.doctor button {
+  float: left;
+  cursor: pointer;
+  padding: 5px 16px;
+}
+
 /*Styling for statistics*/
 .statistics{
   font-family: 'Lato', serif;
