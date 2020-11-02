@@ -65,8 +65,6 @@ class WebRequest{
         let newURL = new URL(this.url)
         let origin = newURL.origin
         let pathAndQuery = newURL.pathname + newURL.search
-        console.log(this.urlParamsAndPath)
-        console.log(this.forwardedIdentifiers)
         //TODO: params in forwardedParams and forwardedIdentifiers
         if(debugMode){
             for(let parameter of this.forwardedParams){
