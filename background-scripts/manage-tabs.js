@@ -38,10 +38,10 @@ function removeOldIdentities(identities) {
     }
     console.info("Removed old identities");
 }
-
+/*
 browser.contextualIdentities.query({})
     .then(removeOldIdentities)
-
+*/
 browserTabs.setCurrentTab()
     .then(() => browser.tabs.query({}))
     .then(tabs =>{

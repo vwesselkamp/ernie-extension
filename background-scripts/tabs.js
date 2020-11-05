@@ -5,6 +5,9 @@ class Tabs{
     constructor() {
         this.tabs = [];
         this.currentTabId = this.setCurrentTab()
+        this.createContextualIdentity().then((container) => {
+            this.container = container
+        })
     }
 
     static getActiveTab() {
@@ -27,6 +30,25 @@ class Tabs{
         return typeof this.tabs[tabID] !== 'undefined';
     }
 
+    createContextualIdentity = () => {
+        return browser.contextualIdentities.query({name: "shadow-container"})
+            .then(container => {
+                if (container[0]) {
+                    console.info("Shadow container already exists")
+                    return Promise.resolve(container[0]);
+                }
+                else return browser.contextualIdentities.create({
+                    name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
+                    color: "blue", //these two attributes are meaningless to us
+                    icon: "briefcase"
+            })
+        })
+    }
+
+    get shadowCookieStoreId(){
+        return this.container.cookieStoreId;
+    }
+
     /**
      * @param url{string}
      * @param tabId
@@ -45,8 +67,8 @@ class Tabs{
      * @param originDbId{number}
      * @returns {*}
      */
-    addShadowTab(url, tabId, origin, originDbId, cookieStoreID){
-        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId, cookieStoreID);
+    addShadowTab(url, tabId, origin, originDbId){
+        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId, this.shadowCookieStoreId);
         return this.tabs[tabId];
     }
 
@@ -67,7 +89,7 @@ class Tabs{
                 if(tab.url == null) return
 
                 if(this.tabs[browserTabId]){
-                    this.tabs[browserTabId].removeContainerIfExists();
+                    this.tabs[browserTabId].removeShadowIfExists();
                 }
                 this.addTab(tab.url, browserTabId);
             }).catch(error => console.error(error))
@@ -103,7 +125,7 @@ class Tabs{
 
             this.setCurrentTab(); // probably unnecessary?
             if(this.tabExists(details.tabId)){
-                this.tabs[details.tabId].removeContainerIfExists();
+                this.tabs[details.tabId].removeShadowIfExists();
             }
             this.addTab(details.url, details.tabId);
             console.info("Cleared tab for " + details.url);
@@ -128,7 +150,7 @@ class Tabs{
      */
     removeContainer(tabId) {
         if(this.tabExists(tabId) && this.tabs[tabId] instanceof OriginTab){
-            this.tabs[tabId].removeContainerIfExists();
+            this.tabs[tabId].removeShadowIfExists();
         }
     }
 
