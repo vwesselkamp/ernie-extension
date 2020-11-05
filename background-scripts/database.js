@@ -23,7 +23,10 @@ const request = indexedDB.open("extension-db", 1);
 If this error occurs it most likely means that the database version is incorrect. Try reinstalling the popup,
 which resets the current db version to 0, or raise the version number in the request above
  */
-request.onerror = () => console.warn("Error: Database could not be initialized");
+request.onerror = (e) => {
+    console.warn("Error: Database could not be initialized");
+    console.warn(e)
+}
 
 // db is successfully retrieved
 request.onsuccess = (event) => {
@@ -86,7 +89,7 @@ function setDatabaseAccess() {
     const originLocation = browser.storage.local.get('originLocation');
     originLocation.then((res) => {
         originDBLocation = res.location || 'http://localhost:8080/extension';
-    });
+    }).catch(e => console.log(e));
 
     const shadowLocation = browser.storage.local.get('shadowLocation');
     shadowLocation.then((res) => {
