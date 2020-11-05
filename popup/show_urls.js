@@ -75,7 +75,9 @@ function insertWebRequest(request, debugMode) {
   the "url" class will instead be assigned to a sub element, the summary.
    */
   requestElement.className += request.category + " " + request.partyString;
-
+  if(request.predecessor){
+    requestElement.title = request.predecessor.domain;
+  }
   return requestElement;
 }
 

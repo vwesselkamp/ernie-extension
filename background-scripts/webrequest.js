@@ -79,7 +79,9 @@ class WebRequest{
         for(let identifier of this.forwardedIdentifiers){
             // create html class name for the forwarded parameter depending of origin domain
             let association = identifier.originDomain !== browserTabs.getTab(this.browserTabId).domain ? "third-forwarded" : "first-forwarded";
-            pathAndQuery = pathAndQuery.replaceAll(encodeURIComponent(identifier.value), "<span class=\"" + association + "\">" + identifier.value + "</span>")
+            pathAndQuery = pathAndQuery
+                .replaceAll(encodeURIComponent(identifier.value),
+                    "<span class=\"" + association + "\" title='" + identifier.originDomain +"'>" + identifier.value + "</span>")
         }
 
         return this.domain + " : " + origin + pathAndQuery
