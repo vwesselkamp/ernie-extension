@@ -2,6 +2,10 @@
  * Gets the domain from a subdomain, as the library psl doesnt handle full URLS
  */
 function getSecondLevelDomainFromDomain(url) {
+    // TODO: psl library cant handle amazonaws
+    if (url.includes("amazonaws")){
+        return url
+    }
     return psl.get(url); // look at a public suffix list and finds domains such as amazon.co.uk
 }
 

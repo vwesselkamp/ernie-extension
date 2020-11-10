@@ -195,11 +195,16 @@ class Domain {
             // index over the domains of the safe cookies
             const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("domain");
             // filters all safe cookies for the request url
-            const indexRange = IDBKeyRange.only(this.name);
-            let idbRequest = cookieIndex.openCursor(indexRange);
+            try{
+                const indexRange = IDBKeyRange.only(this.name);
+                let idbRequest = cookieIndex.openCursor(indexRange);
+                idbRequest.onsuccess = compareQueryWithDomainCookies;
+                idbRequest.onerror = event => reject(event)
+            } catch (e) {
+                console.log(this.name)
+                console.log(e)
+            }
 
-            idbRequest.onsuccess = compareQueryWithDomainCookies;
-            idbRequest.onerror = event => reject(event)
         });
     }
 
