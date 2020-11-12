@@ -13,6 +13,10 @@ class GenericTab {
         this.domains = [];
     }
 
+    serialize(){
+        this.domains.forEach(domain => domain.serialize())
+    }
+
     /**
      * @param id of a response
      * @param url of the same response

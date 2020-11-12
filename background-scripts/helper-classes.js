@@ -34,19 +34,6 @@ class Cookie{
         return this.category === Cookie.CookieType.SAFE;
     }
 
-    /*
-    set identifying(value){
-        if(value === true){
-            this.category = Cookie.CookieType.IDENTIFYING;
-        }
-    }
-
-    set safe(value){
-        if(value === true){
-            this.category = Cookie.CookieType.SAFE;
-        }
-    }*/
-
     get content(){
         if(this.mode === Cookie.Mode.JS){
             return this.key + ": " + this.value;
@@ -129,6 +116,13 @@ class Domain {
         this.cookies = new Set();
         this.requests = [];
         this.responses = [];
+    }
+
+    /**
+     * convert set to array, as stringify() can't handle Sets and we need to serialize the cookies for the DB
+     */
+    serialize(){
+        this.serializedCookies = [...this.cookies]
     }
 
     /**
