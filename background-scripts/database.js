@@ -134,11 +134,20 @@ fetch("http://localhost:8080/ping")
  * The content type defaults to application/text and must be manually set to json, or the restheart API doesn't accept it
  */
 function sendTabToDB(tab) {
+    function prepareHeader(){
+        let headers = new Headers();
+        headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
+        headers.set('Content-Type', 'application/json');
+        return headers
+    }
+
     if(!mongoDBAccess) return;
     console.log("Sending TAb with ID " + tab._id)
-    let headers = new Headers();
-    headers.set('Authorization', 'Basic ' + btoa(mongoDBUser + ":" + mongoDBPassword));
-    headers.set('Content-Type', 'application/json');
+    let headers = prepareHeader()
+
+    let shadowTab = browserTabs.getTab(tab.shadowTabId)
+    tab.serialize()
+    shadowTab.serialize()
 
     fetch(originDBLocation, {
         method: 'POST',
@@ -149,6 +158,6 @@ function sendTabToDB(tab) {
     fetch(shadowDBLocation, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(browserTabs.getTab(tab.shadowTabId))
+        body: JSON.stringify(shadowTab)
     })
 }
