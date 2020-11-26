@@ -3,6 +3,15 @@
 Got to about:debugging in Firefox and add choose "Load temporary add-on", then choose any file from the extension.
 
 The extension has a pop up window that appears when you click on the little policeman.
+### How it works
+For every visit to a page that you do, while the extension is active, there is a second visit happening in the background, in what I call the "shadow tab". The point of this second visit is to be able to determine, which cookies are ID cookies.   
+This works, because the second visit in the "shadow tab" is done form a different container (in Firefox a "contextual identity"),  which has its own cookie store. If we now compare the cookies set in the foreground tab, and the ones form the shadow tab, and we find a cookie with the same key but a different value, we can guess that this cookie can be used to track you.   
+With this information, I can then analyse the requests send and categorise them as in Imanes paper.   
+
+Because the shadow tab is a different container, on visiting a page and accepting the cookie banner, it is also necessary to visit the shadow tab and do the same action there (if you want the cookies that are set to be comparable). In the version that you are using, this is neccessary EVERY TIME you visit a page, even if in the foreground tab, and your normal browsing profile, you have already accepted the cookie banner, because the extension has a different container every time you visit the website.   
+In the much improved version that I am using, the shadow containers are all merged into one, and you only have to accept the banner in the background tab once, much like in your normal browsing profile. This version is on the branch "doctors" in the same repo. However, that version also has some functionality that I use for my analysis of doctors websites, and the layout is not very pretty. You can still use that one though, if you don't find it too confusing.
+
+An additional tipp: The extension is by default in "debug mode" (helped me a lot during development). If you want a popup that's a bit clearer, but doesn't carry  as much information, you can turn it to normal mode, if you go to about:addons, and into the extensions settings
 
 ### Database
 After analyzing a webpage, the extension will try to write the results to a local mongoDB via [restheart] (https://restheart.org/).
