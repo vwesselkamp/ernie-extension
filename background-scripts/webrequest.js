@@ -414,7 +414,7 @@ class WebRequest{
             let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(this.predecessor.domain).cookies
             if(this.isCookieSendAsParam(domainCookies, this.predecessor.domain)){
                 return this.predecessor;
-            } else if (this.isParamsForwarded()){
+            } else if (this.isIdentifierForwarded()){
                 return this.predecessor.getRedirectOrigin();
             }
         }
@@ -452,10 +452,13 @@ class WebRequest{
     }
 
     /**
-     * the Parameter of oru request also occurs in the parameter of the preceding request
-     * @returns {boolean}
+     * Checks if the parameters in this request also occur in the predecessor request. If that is the case,
+     * differentiate between two cases:
+     * 1. Parameter is an identifier in the previous request: Also save it as an identifier
+     * 2. Parameter is forwarded, but not (yet) linked to any cookie: Save it as forwarded parameters
+     * @returns {boolean} if parameter of category 1 is found
      */
-    isParamsForwarded(){
+    isIdentifierForwarded(){
         let isForwarded = false;
         for(let originalParam of this.urlParamsAndPath) {
             for(let predecessorParam of this.predecessor.urlParamsAndPath){
