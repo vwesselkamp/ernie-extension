@@ -465,12 +465,14 @@ class WebRequest{
                     // an identifier for this request, as that means it has been linked to a cookie at a previous
                     // point in the chain. Otherwise, it is just a forwarded parameter
                     let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam.value)
-                    if(forwardedIdentifier && ! this.containsParam(originalParam.value)){
-                        this.forwardedIdentifiers.push(forwardedIdentifier);
+                    if(forwardedIdentifier){
+                        if (! this.containsParam(originalParam.value)){
+                            this.forwardedIdentifiers.push(forwardedIdentifier);
+                        }
+                        isForwarded = true; // found at least one forwarded parameter
                     } else if(!this.forwardedParams.some(param => param.value === originalParam.value)){
                         this.forwardedParams.push(originalParam.addOrigin(this.predecessor.domain))
                     }
-                    isForwarded = true; // found at least one forwarded parameter
                 }
             }
         }
@@ -494,7 +496,7 @@ class WebRequest{
     isParamsEqual(originalParameterValue, comparisonValue) {
         /**
          * This is a special kind of parameter sharing done by google-analytics.
-         * As we usually don"t consider . as a separator, it is normally not found. We therefore explicitly check,
+         * As we usually don't consider . as a separator, it is normally not found. We therefore explicitly check,
          * if the GA cookie of the form "GAX.Y.Z.C" of the first party domain is shared as a URL parameter of the
          * form "Z.C"
          * @returns {boolean}
@@ -556,7 +558,6 @@ class WebRequest{
         if(originalParameterValue === "true" || originalParameterValue === "false") return false;
 
         if(isGASharing()) {
-            console.log("GA sharing for domain " + this.domain)
             return true;
         }
 

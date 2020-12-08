@@ -37,11 +37,14 @@ class Tabs{
                     console.info("Shadow container already exists")
                     return Promise.resolve(container[0]);
                 }
-                else return browser.contextualIdentities.create({
-                    name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
-                    color: "blue", //these two attributes are meaningless to us
-                    icon: "briefcase"
-            })
+                else {
+                    console.info("Creating new container")
+                    return browser.contextualIdentities.create({
+                        name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
+                        color: "blue", //these two attributes are meaningless to us
+                        icon: "briefcase"
+                    })
+                }
         })
     }
 
@@ -68,7 +71,7 @@ class Tabs{
      * @returns {*}
      */
     addShadowTab(url, tabId, origin, originDbId){
-        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId, this.shadowCookieStoreId);
+        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId);
         return this.tabs[tabId];
     }
 
