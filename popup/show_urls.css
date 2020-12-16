@@ -113,15 +113,15 @@ html, body {
 }
 
 .first-syncing{
-  color: coral;
+  color: purple;
 }
 
 .basic-tracking {
-  color: darkorange;
+  color: dodgerblue;
 }
 
 .forwarding{
-  color: goldenrod;
+  color: mediumblue;
 }
 
 .analytics{
@@ -138,17 +138,17 @@ html, body {
 }
 
 .third-forwarded{
-  color: darkblue;
+  color: orange;
 }
 
 .first-forwarded{
-  color: purple;
+  color: brown;
 }
 
 
 
 .analytics .forwardedFirstPartyParams{
-  color: goldenrod;
+  color: purple;
 }
 
 .expanded{
