@@ -169,6 +169,7 @@ class WebRequest{
      * duplicate cookies, as there might be some send as well as set again.
      * Cookies with the same key but different value are treated as different cookies.
      * @param cookie{[string]} contains key and value of the extracted raw cookie
+     * @param mode{string} debug or normal
      * @return {Cookie} tha
      */
     processCookie(cookie, mode) {
@@ -305,7 +306,7 @@ class WebRequest{
      */
     isTrackingInitiatedByTracker() {
         // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
-        if(this.category === Categories.BASICTRACKING){
+        if(this.isBasicTracking.call(this)){
 
             // check both options for initiation
             return this.isInitiatedByPredecessor.call(this);
@@ -325,8 +326,10 @@ class WebRequest{
             } else {
                 return this.predecessor.isInitiatedByPredecessor();
             }
+        } else if (this.referer && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain) {
+            return true
         }
-    }
+}
 
     /**
      * The last four categories only deviate very slightly, so they are differentiated in this method
