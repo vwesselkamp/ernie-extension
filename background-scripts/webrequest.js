@@ -249,7 +249,7 @@ class WebRequest{
                 console.warn("Redirected but redirect origin not found for: " + this.url)
             }
         } else if(this.completeReferer){
-            return  browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer);
+            return browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer);
         }
     }
 
@@ -386,7 +386,11 @@ class WebRequest{
             } else {
                 setIdentifierSharingForFirstParties();
             }
-        }  else if (this.isDirectInclusionFromDomain()) {
+        } else if (this.referer && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain) {
+            if(this.isInclusionFromThirdDomain(this.referer)){
+                setIdentifierSharingForThirdParties();
+            }
+        } else if (this.isDirectInclusionFromDomain()) {
             setIdentifierSharingForFirstParties();
         }
     }
@@ -399,6 +403,17 @@ class WebRequest{
     isDirectInclusionFromDomain() {
         let mainCookies = browserTabs.getTab(this.browserTabId).mainDomain.cookies;
         if(this.isCookieSendAsParam(mainCookies, browserTabs.getTab(this.browserTabId).domain)){
+            return true;
+        }
+    }
+
+    /**
+     * Check for any domain if cookies have been forwarded to this request
+     * @return {boolean}
+     */
+    isInclusionFromThirdDomain(domainName) {
+        let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(domainName).cookies;
+        if(this.isCookieSendAsParam(domainCookies, domainName)){
             return true;
         }
     }
@@ -431,7 +446,6 @@ class WebRequest{
 
         for(let predecessorCookie of predecessorCookies){
             if (!predecessorCookie.identifying) continue;
-
             // split again at the delimiter defined by Imane
             let splitCookie = predecessorCookie.value.split(/[^a-zA-Z0-9-_.]/);
             for(let split of splitCookie){
