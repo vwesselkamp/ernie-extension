@@ -77,6 +77,8 @@ function insertWebRequest(request, debugMode) {
   requestElement.className += request.category + " " + request.partyString;
   if(request.predecessor){
     requestElement.title = request.predecessor.domain;
+  } else if (request.referer){
+    requestElement.title = request.referer;
   }
   return requestElement;
 }
