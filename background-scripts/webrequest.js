@@ -92,6 +92,16 @@ class WebRequest{
     }
 
     /**
+     * If the referer exists, and it is neither the first party, nor the domain of the request itself, it is part of an
+     * inclusion chain, which influences the tracking categories
+     *
+     * @returns {boolean}
+     */
+    isRefererNeitherFirstNorSelf(){
+        return this.referer !== undefined && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain
+    }
+
+    /**
      * this is here so it can be overwritten for the Response Class, where the header attribute is named differently
      */
     getHeader(webRequest) {
@@ -326,8 +336,8 @@ class WebRequest{
             } else {
                 return this.predecessor.isInitiatedByPredecessor();
             }
-        } else if (this.referer && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain) {
-            return true
+        } else {
+            return this.isRefererNeitherFirstNorSelf();
         }
 }
 
@@ -389,7 +399,7 @@ class WebRequest{
             } else {
                 setIdentifierSharingForFirstParties();
             }
-        } else if (this.referer && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain) {
+        } else if (this.isRefererNeitherFirstNorSelf()) {
             if(this.isInclusionFromThirdDomain(this.referer)){
                 setIdentifierSharingForThirdParties();
             }
@@ -501,7 +511,7 @@ class WebRequest{
 
 
     /**
-     * Cover cases the inclusion cases form Imanes paper
+     * Cover cases the inclusion cases from Imanes paper
      * identifier -> identifier
      * *id* -> id
      * id -> *id*
