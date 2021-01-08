@@ -160,6 +160,7 @@ class Tabs{
     /**
      * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
      * It is necessary for some reason to wait a little longer
+     * TODO: refactor
      */
     evaluateTab(tabId){
         if (this.tabs[tabId] instanceof ShadowTab) {
@@ -168,6 +169,8 @@ class Tabs{
             setTimeout(() => {
                 this.tabs[this.tabs[tabId].originTab].evaluateRequests();
             }, 2000);
+        } else if (this.tabs[tabId] instanceof OriginTab) {
+            this.tabs[tabId].evaluateRequests();
         }
     }
 
