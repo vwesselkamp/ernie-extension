@@ -306,7 +306,7 @@ function evaluateMessage(message) {
 async function getDebugMode(){
   let res = await browser.storage.local.get('debug');
   // to make debug mode default
-  if(res.debug === undefined) {
+  if(res.debug === false) {
     return true;
   } else {
     return res.debug;
