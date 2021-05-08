@@ -194,11 +194,11 @@ class ShadowTab extends GenericTab{
  * in the domains array under their respective domain.
  */
 class OriginTab extends GenericTab{
-    constructor(url, tabId) {
+    constructor(url, tabId, shadowWindowID) {
         super(url, tabId);
         this.evaluated = false;
         this._id = Date.now(); // this is used as an identifier for the database
-        this.createShadowTab();
+        this.createShadowTab(shadowWindowID);
     }
 
     isEvaluated(){
@@ -210,7 +210,7 @@ class OriginTab extends GenericTab{
      * The container has its own cookieStore and a separate access to localStorage etc.
      * It also has a separated cache.
      */
-    createShadowTab(){
+    createShadowTab(windowID){
         /**
          * Inside our container, a new hidden tab is created, that mirrors the request of the original tab
          * @param identity
@@ -220,16 +220,11 @@ class OriginTab extends GenericTab{
             return browser.tabs.create({
                 active: false, // this opens the tab in the background
                 // this assigns the tab to our created contextual identity
-                cookieStoreId: browserTabs.shadowCookieStoreId})
+                windowId: windowID})
         }
 
-        let hideTab = (shadowTab) => {
+        let createShadowTabAndNavigate = (shadowTab) => {
             this.shadowTabId = shadowTab.id;
-            // this hides the tab
-            return browser.tabs.hide(shadowTab.id);
-        }
-
-        let createShadowTabAndNavigate = () => {
             console.info("Creating shadow Tab for " + this.url)
             browserTabs.addShadowTab(this.url, this.shadowTabId, this.tabId, this._id);
             //update sets the url of the shadowTab to that of the original request
@@ -237,10 +232,9 @@ class OriginTab extends GenericTab{
                 url: this.url
             })
         }
-
+        console.log("creating shDOW tab")
 
         createTab()
-            .then(hideTab)
             .then(createShadowTabAndNavigate)
             .catch(e => {
                 console.log(e)

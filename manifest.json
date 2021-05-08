@@ -36,5 +36,7 @@
     "default_title": "Requests",
     "default_popup": "popup/show_urls.html",
     "browser_style": true
-  }
+  },
+
+  "incognito": "spanning"
 }

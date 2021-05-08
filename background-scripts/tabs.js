@@ -5,8 +5,12 @@ class Tabs{
     constructor() {
         this.tabs = [];
         this.currentTabId = this.setCurrentTab()
-        this.createContextualIdentity().then((container) => {
-            this.container = container
+    }
+
+    initializeShadowWindow(){
+        return browser.windows.create({focused: false, incognito: true}).then((window) => {
+            this.shadowWindowID = window.id
+            console.log(this.shadowWindowID)
         })
     }
 
@@ -15,7 +19,8 @@ class Tabs{
     }
 
     async setCurrentTab() {
-        this.currentTabId = (await Tabs.getActiveTab())[0].id;
+        let tab = (await Tabs.getActiveTab())
+        this.currentTabId = tab[0].id;
     }
 
     getTab(tabID){
@@ -30,25 +35,8 @@ class Tabs{
         return typeof this.tabs[tabID] !== 'undefined';
     }
 
-    createContextualIdentity = () => {
-        return browser.contextualIdentities.query({name: "shadow-container"})
-            .then(container => {
-                if (container[0]) {
-                    console.info("Shadow container already exists")
-                    return Promise.resolve(container[0]);
-                }
-                else {
-                    console.info("Creating new container")
-                    return browser.contextualIdentities.create({
-                        name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
-                        color: "blue", //these two attributes are meaningless to us
-                        icon: "briefcase"
-                    })
-                }
-        })
-    }
-
     get shadowCookieStoreId(){
+        // TODO
         return this.container.cookieStoreId;
     }
 
@@ -58,7 +46,7 @@ class Tabs{
      * @returns {OriginTab} that was created
      */
     addTab(url, tabId){
-        this.tabs[tabId] = new OriginTab(url, tabId);
+        this.tabs[tabId] = new OriginTab(url, tabId, this.shadowWindowID);
         return this.tabs[tabId];
     }
 
@@ -86,15 +74,20 @@ class Tabs{
         // gets the information about our tab and initializes our own OriginTab object with it
         browser.tabs.get(browserTabId)
             .then((tab) => {
-                if(tab.cookieStoreId !== "firefox-default") {
+
+                if(tab.windowId === browserTabs.shadowWindowID) {
                     return;
                 }
-                if(tab.url == null) return
+                if(!tab.url && ! tab.pendingUrl) return
 
                 if(this.tabs[browserTabId]){
                     this.tabs[browserTabId].removeShadowIfExists();
                 }
-                this.addTab(tab.url, browserTabId);
+                if (tab.pendingUrl){
+                    this.addTab(tab.pendingUrl, browserTabId);
+                } else {
+                    this.addTab(tab.url, browserTabId);
+                }
             }).catch(error => console.error(error))
     }
 
@@ -118,7 +111,7 @@ class Tabs{
         const getting = browser.tabs.get(details.tabId);
 
         getting.then((tab) =>{
-            if(tab.cookieStoreId !== "firefox-default") return;
+            if(tab.windowId === browserTabs.shadowWindowID) return;
 
             // if the Navigation happens in an iFrame on the page we don't care
             if(details.frameId !== 0) {
@@ -128,6 +121,7 @@ class Tabs{
 
             this.setCurrentTab(); // probably unnecessary?
             if(this.tabExists(details.tabId)){
+                console.log(this.tabs[details.tabId])
                 this.tabs[details.tabId].removeShadowIfExists();
             }
             this.addTab(details.url, details.tabId);
@@ -219,5 +213,13 @@ class Tabs{
     }
 }
 
-var browserTabs = new Tabs();
+browser.extension.isAllowedIncognitoAccess().then((isAllowedAccess) => {
+    if (isAllowedAccess) return; // Great, we've got access
+
+    browser.tabs.create({
+        url: 'chrome://extensions/?id=' + browser.runtime.id
+    });
+});
+
+var browserTabs
 
