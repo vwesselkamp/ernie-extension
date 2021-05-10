@@ -8,9 +8,16 @@ class Tabs{
     }
 
     initializeShadowWindow(){
-        return browser.windows.create({focused: false, incognito: true}).then((window) => {
-            this.shadowWindowID = window.id
-            console.log(this.shadowWindowID)
+        browser.windows.create({focused: false, incognito: true}).then((window) => {
+            this.shadowWindowID = window.id;
+            let shadowTabId = window.tabs[0].id
+            browser.cookies.getAllCookieStores().then((stores) => {
+                for (let store of stores){
+                    if(store.tabIds.includes(shadowTabId)){
+                        browserTabs.shadowCookieStoreId = store.id;
+                    }
+                }
+            })
         })
     }
 
@@ -33,11 +40,6 @@ class Tabs{
 
     tabExists = (tabID) => {
         return typeof this.tabs[tabID] !== 'undefined';
-    }
-
-    get shadowCookieStoreId(){
-        // TODO
-        return this.container.cookieStoreId;
     }
 
     /**
@@ -121,7 +123,6 @@ class Tabs{
 
             this.setCurrentTab(); // probably unnecessary?
             if(this.tabExists(details.tabId)){
-                console.log(this.tabs[details.tabId])
                 this.tabs[details.tabId].removeShadowIfExists();
             }
             this.addTab(details.url, details.tabId);
