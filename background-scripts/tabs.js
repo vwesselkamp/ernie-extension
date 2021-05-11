@@ -40,7 +40,7 @@ class Tabs{
             }
         }
 
-        browser.windows.getAll().then(windows => {
+        browser.windows.getAll({populate: true, windowTypes: ['normal']}).then(windows => {
             for (let window of windows){
                 if (window.incognito){
                     return window
@@ -48,7 +48,7 @@ class Tabs{
             }
             return browser.windows.create({focused: false, incognito: true})
         }).then((window) => {
-            console.log(window.id)
+            console.log(window)
             this.shadowWindowID = window.id;
             let shadowTabId = window.tabs[0].id
             /* API doesn't allow access to cookieStore of Window directly, thus we have to check each sotre against the

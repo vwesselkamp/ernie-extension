@@ -168,10 +168,10 @@ function constructHeader() {
   if(backgroundPage.browserTabs.currentTab.shadowTabId){
     // set page and clean content of the request/response windows
     document.getElementById("current-page").innerHTML = "Page: " + page
-    document.getElementById("button").innerText = "Show Shadow Tab"
+    document.getElementById("shadow-button").innerText = "Show Shadow Tab"
   } else {
     document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
-    document.getElementById("button").innerText = "Hide Shadow Tab"
+    document.getElementById("shadow-button").innerText = "Show Origin Tab"
   }
 }
 
@@ -244,19 +244,22 @@ function switchTab(event) {
   function switchToOriginTab() {
     let shadowTabID = backgroundPage.browserTabs.currentTab.tabId;
     let originTabID = backgroundPage.browserTabs.currentTab.originTab;
+
     browser.tabs.update(originTabID, {active: true})
-        .then(() => {
-          return browser.tabs.hide(shadowTabID)
-        })
-        .then(() => {
+        .then((tab) => {
+          return browser.windows.update(tab.windowID, {focused: true})})
+        .then(() =>{
           constructPageFromScratch();
           backgroundPage.browserTabs.evaluateTab(shadowTabID);
         });
   }
 
   function switchToShadowTab() {
-    let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
-    browser.tabs.update(shadowTabId, {active: true})
+    browser.windows.update(backgroundPage.browserTabs.shadowWindowID, {focused: true})
+        .then((res) =>{
+          let shadowTabId = backgroundPage.browserTabs.currentTab.shadowTabId;
+          return browser.tabs.update(shadowTabId, {active: true})
+        })
         .then(() => constructPageFromScratch());
   }
 
@@ -327,7 +330,7 @@ browser.runtime.onMessage.addListener(evaluateMessage);
 for(let link of document.getElementsByClassName("tablinks")){
   link.addEventListener("click", openList);
 }
-document.getElementById("button").addEventListener("click", switchTab);
+document.getElementById("shadow-button").addEventListener("click", switchTab);
 
 document.getElementById("save-button").addEventListener("click", saveShadowCookies);
 
