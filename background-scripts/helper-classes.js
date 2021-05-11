@@ -68,7 +68,7 @@ class Cookie{
      */
     writeToDB(domain) {
         if(this.category !== Cookie.CookieType.SAFE) return ;
-        let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+        let cookieObjectStore = db.transaction("safe_cookies", "readwrite").objectStore("safe_cookies");
         let cookie = {domain: domain, key: this.key, value: this.value};
         cookieObjectStore.add(cookie);
     }
@@ -187,7 +187,7 @@ class Domain {
             }
 
             // index over the domains of the safe cookies
-            const cookieIndex = db.transaction(["cookies"]).objectStore("cookies").index("domain");
+            const cookieIndex = db.transaction(["safe_cookies"]).objectStore("safe_cookies").index("domain");
             // filters all safe cookies for the request url
             try{
                 const indexRange = IDBKeyRange.only(this.name);

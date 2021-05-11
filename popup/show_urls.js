@@ -315,12 +315,22 @@ async function getDebugMode(){
   }
 }
 
+function saveShadowCookies() {
+  browser.runtime.getBackgroundPage()
+      .then( (page) => {
+        page.saveShadowCookies()
+      });
+}
+
 browser.runtime.onMessage.addListener(evaluateMessage);
 
 for(let link of document.getElementsByClassName("tablinks")){
   link.addEventListener("click", openList);
 }
 document.getElementById("button").addEventListener("click", switchTab);
+
+document.getElementById("save-button").addEventListener("click", saveShadowCookies);
+
 document.getElementById("cookies-button").click();
 
 // gets the backgroundPage once on opening

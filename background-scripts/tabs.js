@@ -2,21 +2,66 @@
  * This class encapsulate all the opened tabs and provides the methods to access them
  */
 class Tabs{
+
     constructor() {
         this.tabs = [];
         this.currentTabId = this.setCurrentTab()
     }
 
     initializeShadowWindow(){
-        browser.windows.create({focused: false, incognito: true}).then((window) => {
+        function writeCookiesToStore(queryResult){
+            const cursor = queryResult.target.result;
+            if (cursor) {
+                let cookie = cursor.value
+                cookie['storeId'] = browserTabs.shadowCookieStoreId;
+                if(cookie['hostOnly'] !== undefined){
+                    delete cookie['hostOnly'];
+                    delete cookie['session'];
+                }
+                cookie['url'] = "http" + (cookie.secure ? "s" : "") + "://"
+                    + (cookie.domain.startsWith(".") ? cookie.domain.substr(1) : cookie.domain) + cookie.path
+
+                browser.cookies.set(cursor.value)
+                cursor.continue();
+            }
+        }
+
+        function loadCookiesIntoShadowWindow() {
+            // index over the domains of the safe cookies
+            const cookieIndex = db.transaction(["cookies"]).objectStore("cookies");
+            // filters all safe cookies for the request url
+            try {
+                let idbRequest = cookieIndex.openCursor();
+                idbRequest.onsuccess = writeCookiesToStore;
+                idbRequest.onerror = event => reject(event)
+            } catch (e) {
+                console.log(this.name)
+                console.log(e)
+            }
+        }
+
+        browser.windows.getAll().then(windows => {
+            for (let window of windows){
+                if (window.incognito){
+                    return window
+                }
+            }
+            return browser.windows.create({focused: false, incognito: true})
+        }).then((window) => {
+            console.log(window.id)
             this.shadowWindowID = window.id;
             let shadowTabId = window.tabs[0].id
+            /* API doesn't allow access to cookieStore of Window directly, thus we have to check each sotre against the
+            window ID of the shadowWindow
+             */
             browser.cookies.getAllCookieStores().then((stores) => {
                 for (let store of stores){
                     if(store.tabIds.includes(shadowTabId)){
-                        browserTabs.shadowCookieStoreId = store.id;
+                         browserTabs.shadowCookieStoreId = store.id;
                     }
                 }
+
+                loadCookiesIntoShadowWindow()
             })
         })
     }

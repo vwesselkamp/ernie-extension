@@ -44,29 +44,32 @@ request.onupgradeneeded = function(event) {
      * The DB is either just updated or set up completely new, so we need to differentiate the two cases.
      * @returns {IDBObjectStore}
      */
-    function initializeObjectStore() {
+    function initializeObjectStore(name) {
         try {
             // DB is setup completely new and we can freely set up our cookie store.
             // objectstore with autoincrementing key as we dont have a natural primary key for the cookies
-            return db.createObjectStore("cookies", {autoIncrement: "true"});
+            return db.createObjectStore(name, {autoIncrement: "true"});
         } catch (e) {
             // DB is only updated by raising the version number.
             // When updating the schema we cannot simply change the cookie store, it has to be deleted, and set up newly
             console.warn(e);
-            db.deleteObjectStore("cookies");
-            console.warn("Reinitializing object store cookies.")
-            return db.createObjectStore("cookies", {autoIncrement: "true"});
+            db.deleteObjectStore(name);
+            console.warn("Reinitializing object store " + name)
+            return db.createObjectStore(name, {autoIncrement: "true"});
         }
     }
 
     console.info("Database upgraded");
     db = event.target.result;
 
-    const objectStore = initializeObjectStore();
+    const safeCookieOS = initializeObjectStore("safe_cookies");
 
     // Create an index to search cookies by url. We may have duplicates
     // so we can't use a unique index.
-    objectStore.createIndex("domain", "domain", { unique: false });
+    safeCookieOS.createIndex("domain", "domain", { unique: false });
+
+
+    const allCookieOS = initializeObjectStore("cookies");
 };
 
 

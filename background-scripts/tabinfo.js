@@ -232,7 +232,6 @@ class OriginTab extends GenericTab{
                 url: this.url
             })
         }
-        console.log("creating shDOW tab")
 
         createTab()
             .then(createShadowTabAndNavigate)

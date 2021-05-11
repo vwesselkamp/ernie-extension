@@ -34,18 +34,32 @@ function initializeTabManagement() {
 }
 
 function startShadowWindow() {
-    browser.extension.isAllowedIncognitoAccess().then((isAllowedAccess) => {
-        if (isAllowedAccess){
-            initializeTabManagement();
-            initializeRequestManagement()
-        } else {
-            setTimeout(startShadowWindow, 5000);
-        }
-    });
+    browser.extension.isAllowedIncognitoAccess()
+        .then((isAllowedAccess) => {
+            if (isAllowedAccess){
+                initializeTabManagement();
+                initializeRequestManagement();
+            } else {
+                setTimeout(startShadowWindow, 5000);
+            }
+        });
 }
 
-startShadowWindow();
+function saveShadowCookies(){
+    if(browserTabs === undefined){
+        return
+    }
+    // clear all cookies from objectStore
+    browser.cookies.getAll({storeId: browserTabs.shadowCookieStoreId})
+        .then(cookies => {
+            let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
+            for (let cookie of cookies){
+                cookieObjectStore.add(cookie);
+            }
+    })
+}
 
+startShadowWindow()
 
 //wrap such that we can call evaluateTab with the ID only
 function onCompleted(details){
