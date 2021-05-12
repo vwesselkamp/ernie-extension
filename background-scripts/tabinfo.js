@@ -67,6 +67,11 @@ class GenericTab {
         domain.addCookies(cookies);
     }
 
+    extendWebRequestIdParams(domainName, idParam){
+        let domain = this.upsertDomain(domainName);
+        domain.addParam(idParam);
+    }
+
     markDomainAsTracker(domainName){
         let domain = this.upsertDomain(domainName)
         domain.setTracker(true);
