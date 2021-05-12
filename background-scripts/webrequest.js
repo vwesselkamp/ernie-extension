@@ -409,11 +409,7 @@ class WebRequest{
                 */
                 let domainParams = browserTabs.getTab(this.browserTabId).upsertDomain(this.referer).idParams;
                 let originDomain = this.isIdentifierSendAsParam(domainParams, this.referer)
-                console.log("yes")
-                console.log(originDomain)
                 if (originDomain !== undefined ){
-                    console.log("yes")
-                    console.log(originDomain)
                     if (originDomain === browserTabs.getTab(this.browserTabId).domain){
                         setIdentifierSharingForFirstParties();
                     } else {
@@ -509,20 +505,18 @@ class WebRequest{
     }
 
     compareIdentifiersToCurrent(identifier, originDomain) {
-        console.warn("here")
         let isSendAsParam;
         let splitCookie = identifier.value.split(/[^a-zA-Z0-9-_.]/);
         for (let split of splitCookie) {
             for (let parameter of this.urlParamsAndPath) {
                 if (this.isParamsEqual(parameter.value, split)) {
-                    console.info("FOUND ONE for " + this.url + "   " + parameter.value)
+                    //console.info("FOUND ONE for " + this.url + "   " + parameter.value)
                     // add the forwarded parameter with the origin information
-                    let identifier = this.retrieveParamIfExists(parameter.value);
-                    if (!identifier) {
-                        let idParam = parameter.addOrigin(originDomain)
-                        this.forwardedIdentifiers.push(idParam);
-                        // TODO: push to domain
-                        browserTabs.getTab(this.browserTabId).extendWebRequestIdParams(this.domain, idParam)
+                    let ownIdParam = this.retrieveParamIfExists(parameter.value);
+                    if (!ownIdParam) {
+                        this.forwardedIdentifiers.push(identifier);
+                        // push to domain
+                        browserTabs.getTab(this.browserTabId).extendWebRequestIdParams(this.domain, identifier)
                     }
                     isSendAsParam = true; // found at least one forwarded cookie, but continue to find all
                 }
@@ -533,15 +527,13 @@ class WebRequest{
 
     /**
      * TODO refactor. Method if predecssor not sent to compare forwarded identifiers of domain
-     * @param predecessorCookies{[Cookie]} are the cookies of the domain of the predecessor
+     * @param domainIdentifiers{[Parameter]} are the ID parameters forwarded to this domain
      * @param originDomain{string} is the domain form where the cookies are
-     * @returns {boolean} if the cookie of the request that redirected to our request of interest is send as Url Parameter
+     * @returns {string} the origin domain of one forwarded parameter
      */
     isIdentifierSendAsParam(domainIdentifiers, originDomain){
-        console.log(domainIdentifiers, originDomain)
         for(let idParam of domainIdentifiers){
             if(this.compareIdentifiersToCurrent(idParam, originDomain)){
-                console.warn(idParam)
                 return idParam.originDomain;
             }
         }
