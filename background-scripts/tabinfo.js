@@ -109,7 +109,7 @@ class GenericTab {
      * @returns {boolean}
      */
     integrateResponse(responseDetails){
-        let request = this.getCorrespondingRequest(responseDetails.url, responseDetails.id);
+        let request = this.getCorrespondingRequest(responseDetails.url, responseDetails.requestId);
         if(!request){
             console.warn("No corresponding request found for this response");
             return false;
