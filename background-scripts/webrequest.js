@@ -386,7 +386,8 @@ class WebRequest{
             return
         }
 
-        let originRequest = this.getRedirectOrigin();
+        let originRequest = this.getInitiator();
+        // if the request has another request as the initiator
         if (originRequest) {
             if (originRequest.thirdParty ) {
                 // if it shares url parameters even further backwards, we check if it could belong into
@@ -400,12 +401,15 @@ class WebRequest{
                 setIdentifierSharingForFirstParties();
             }
         } else if (this.isRefererNeitherFirstNorSelf()) {
-            /* Referer is 3rd party but set most likely to domain instead of URL*/
+            /*
+               If the request has no predecessor, but a referrer header that is not the first party either
+             */
             if(this.isInclusionByCookieFromThirdDomain(this.referer)){
+                /* Referer is 3rd party but set most likely to domain instead of URL*/
                 setIdentifierSharingForThirdParties();
             } else {
                 /* TODO refactor. test.
-                * If the parameters are forwarded, but only know for the whole domain
+                * If the parameters are forwarded, but only know for the whole domain, not linked to a specific request
                 */
                 let domainParams = browserTabs.getTab(this.browserTabId).upsertDomain(this.referer).idParams;
                 let originDomain = this.isIdentifierSendAsParam(domainParams, this.referer)
@@ -418,6 +422,7 @@ class WebRequest{
                     }
                 }
             }
+        // neither of the two. we still check if a first party cookie is somehow forwarded and our chain didn't pick it up
         } else if (this.isDirectInclusionFromDomain()) {
             setIdentifierSharingForFirstParties();
         }
@@ -460,13 +465,13 @@ class WebRequest{
      * that request as well.
      * @returns {undefined| WebRequest} the origin request of the cookie forwarded through URL parameters
      */
-    getRedirectOrigin() {
+    getInitiator() {
         if (this.predecessor) {
             let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(this.predecessor.domain).cookies
             if(this.isCookieSendAsParam(domainCookies, this.predecessor.domain)){
                 return this.predecessor;
             } else if (this.isIdentifierForwarded()){
-                return this.predecessor.getRedirectOrigin();
+                return this.predecessor.getInitiator();
             }
         }
     }
@@ -504,14 +509,20 @@ class WebRequest{
         return isSendAsParam;
     }
 
-    compareIdentifiersToCurrent(identifier, originDomain) {
+    /**
+     * Check an identifier aginst all the identifiers from this requests and adds them to domain and reqeust if it
+     * is forwarded in this request also
+     * @param identifier
+     * @returns {boolean}
+     */
+    compareIdentifiersToCurrent(identifier) {
         let isSendAsParam;
         let splitCookie = identifier.value.split(/[^a-zA-Z0-9-_.]/);
         for (let split of splitCookie) {
             for (let parameter of this.urlParamsAndPath) {
                 if (this.isParamsEqual(parameter.value, split)) {
                     //console.info("FOUND ONE for " + this.url + "   " + parameter.value)
-                    // add the forwarded parameter with the origin information
+                    // add the forwarded identifier from predecessor domain
                     let ownIdParam = this.retrieveParamIfExists(parameter.value);
                     if (!ownIdParam) {
                         this.forwardedIdentifiers.push(identifier);
@@ -533,7 +544,7 @@ class WebRequest{
      */
     isIdentifierSendAsParam(domainIdentifiers, originDomain){
         for(let idParam of domainIdentifiers){
-            if(this.compareIdentifiersToCurrent(idParam, originDomain)){
+            if(this.compareIdentifiersToCurrent(idParam)){
                 return idParam.originDomain;
             }
         }
