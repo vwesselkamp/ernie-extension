@@ -114,6 +114,7 @@ class Domain {
         this.name = domain;
         this.tracker = false;
         this.cookies = new Set();
+        this.idParams = new Set();
         this.requests = [];
         this.responses = [];
     }
@@ -123,6 +124,7 @@ class Domain {
      */
     serialize(){
         this.serializedCookies = [...this.cookies]
+        this.serializedIdParams = [...this.idParams]
     }
 
     /**
@@ -144,6 +146,10 @@ class Domain {
         for(let cookie of cookieArray){
             this.cookies.add(cookie)
         }
+    }
+
+    addParam(param) {
+        this.idParams.add(param)
     }
 
     setTracker(value){
