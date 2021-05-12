@@ -92,6 +92,16 @@ class WebRequest{
     }
 
     /**
+     * If the referer exists, and it is neither the first party, nor the domain of the request itself, it is part of an
+     * inclusion chain, which influences the tracking categories
+     *
+     * @returns {boolean}
+     */
+    isRefererNeitherFirstNorSelf(){
+        return this.referer !== undefined && this.referer !== this.domain && this.referer !== browserTabs.getTab(this.browserTabId).domain
+    }
+
+    /**
      * this is here so it can be overwritten for the Response Class, where the header attribute is named differently
      */
     getHeader(webRequest) {
@@ -169,6 +179,7 @@ class WebRequest{
      * duplicate cookies, as there might be some send as well as set again.
      * Cookies with the same key but different value are treated as different cookies.
      * @param cookie{[string]} contains key and value of the extracted raw cookie
+     * @param mode{string} debug or normal
      * @return {Cookie} tha
      */
     processCookie(cookie, mode) {
@@ -249,7 +260,7 @@ class WebRequest{
                 console.warn("Redirected but redirect origin not found for: " + this.url)
             }
         } else if(this.completeReferer){
-            return  browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer);
+            return browserTabs.getTab(this.browserTabId).getCorrespondingRequest(this.completeReferer);
         }
     }
 
@@ -305,7 +316,7 @@ class WebRequest{
      */
     isTrackingInitiatedByTracker() {
         // can only be a "tracking request initiated by another tracker" if it is also a basic tracking request
-        if(this.category === Categories.BASICTRACKING){
+        if(this.isBasicTracking.call(this)){
 
             // check both options for initiation
             return this.isInitiatedByPredecessor.call(this);
@@ -325,8 +336,10 @@ class WebRequest{
             } else {
                 return this.predecessor.isInitiatedByPredecessor();
             }
+        } else {
+            return this.isRefererNeitherFirstNorSelf();
         }
-    }
+}
 
     /**
      * The last four categories only deviate very slightly, so they are differentiated in this method
@@ -386,7 +399,11 @@ class WebRequest{
             } else {
                 setIdentifierSharingForFirstParties();
             }
-        }  else if (this.isDirectInclusionFromDomain()) {
+        } else if (this.isRefererNeitherFirstNorSelf()) {
+            if(this.isInclusionFromThirdDomain(this.referer)){
+                setIdentifierSharingForThirdParties();
+            }
+        } else if (this.isDirectInclusionFromDomain()) {
             setIdentifierSharingForFirstParties();
         }
     }
@@ -404,6 +421,17 @@ class WebRequest{
     }
 
     /**
+     * Check for any domain if cookies have been forwarded to this request
+     * @return {boolean}
+     */
+    isInclusionFromThirdDomain(domainName) {
+        let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(domainName).cookies;
+        if(this.isCookieSendAsParam(domainCookies, domainName)){
+            return true;
+        }
+    }
+
+    /**
      * If the request is a result of a redirection, check first if the cookies of the DOMAIN of the redirecting request
      * have been set as an URL parameter. If not, but the Parameter also occurs in the redirecting requests URL, recursively check
      * that request as well.
@@ -414,7 +442,7 @@ class WebRequest{
             let domainCookies = browserTabs.getTab(this.browserTabId).upsertDomain(this.predecessor.domain).cookies
             if(this.isCookieSendAsParam(domainCookies, this.predecessor.domain)){
                 return this.predecessor;
-            } else if (this.isParamsForwarded()){
+            } else if (this.isIdentifierForwarded()){
                 return this.predecessor.getRedirectOrigin();
             }
         }
@@ -431,7 +459,6 @@ class WebRequest{
 
         for(let predecessorCookie of predecessorCookies){
             if (!predecessorCookie.identifying) continue;
-
             // split again at the delimiter defined by Imane
             let splitCookie = predecessorCookie.value.split(/[^a-zA-Z0-9-_.]/);
             for(let split of splitCookie){
@@ -452,10 +479,13 @@ class WebRequest{
     }
 
     /**
-     * the Parameter of oru request also occurs in the parameter of the preceding request
-     * @returns {boolean}
+     * Checks if the parameters in this request also occur in the predecessor request. If that is the case,
+     * differentiate between two cases:
+     * 1. Parameter is an identifier in the previous request: Also save it as an identifier
+     * 2. Parameter is forwarded, but not (yet) linked to any cookie: Save it as forwarded parameters
+     * @returns {boolean} if parameter of category 1 is found
      */
-    isParamsForwarded(){
+    isIdentifierForwarded(){
         let isForwarded = false;
         for(let originalParam of this.urlParamsAndPath) {
             for(let predecessorParam of this.predecessor.urlParamsAndPath){
@@ -465,12 +495,14 @@ class WebRequest{
                     // an identifier for this request, as that means it has been linked to a cookie at a previous
                     // point in the chain. Otherwise, it is just a forwarded parameter
                     let forwardedIdentifier = this.predecessor.retrieveParamIfExists(originalParam.value)
-                    if(forwardedIdentifier && ! this.containsParam(originalParam.value)){
-                        this.forwardedIdentifiers.push(forwardedIdentifier);
+                    if(forwardedIdentifier){
+                        if (! this.containsParam(originalParam.value)){
+                            this.forwardedIdentifiers.push(forwardedIdentifier);
+                        }
+                        isForwarded = true; // found at least one forwarded parameter
                     } else if(!this.forwardedParams.some(param => param.value === originalParam.value)){
                         this.forwardedParams.push(originalParam.addOrigin(this.predecessor.domain))
                     }
-                    isForwarded = true; // found at least one forwarded parameter
                 }
             }
         }
@@ -479,7 +511,7 @@ class WebRequest{
 
 
     /**
-     * Cover cases the inclusion cases form Imanes paper
+     * Cover cases the inclusion cases from Imanes paper
      * identifier -> identifier
      * *id* -> id
      * id -> *id*
@@ -494,7 +526,7 @@ class WebRequest{
     isParamsEqual(originalParameterValue, comparisonValue) {
         /**
          * This is a special kind of parameter sharing done by google-analytics.
-         * As we usually don"t consider . as a separator, it is normally not found. We therefore explicitly check,
+         * As we usually don't consider . as a separator, it is normally not found. We therefore explicitly check,
          * if the GA cookie of the form "GAX.Y.Z.C" of the first party domain is shared as a URL parameter of the
          * form "Z.C"
          * @returns {boolean}
@@ -556,7 +588,6 @@ class WebRequest{
         if(originalParameterValue === "true" || originalParameterValue === "false") return false;
 
         if(isGASharing()) {
-            console.log("GA sharing for domain " + this.domain)
             return true;
         }
 

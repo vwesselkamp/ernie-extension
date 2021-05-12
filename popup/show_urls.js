@@ -77,6 +77,8 @@ function insertWebRequest(request, debugMode) {
   requestElement.className += request.category + " " + request.partyString;
   if(request.predecessor){
     requestElement.title = request.predecessor.domain;
+  } else if (request.referer){
+    requestElement.title = request.referer;
   }
   return requestElement;
 }
@@ -306,7 +308,7 @@ function evaluateMessage(message) {
 async function getDebugMode(){
   let res = await browser.storage.local.get('debug');
   // to make debug mode default
-  if(res.debug === false) {
+  if(res.debug === undefined) {
     return true;
   } else {
     return res.debug;

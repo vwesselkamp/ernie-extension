@@ -24,24 +24,6 @@ function onCompleted(details){
 
 browser.webNavigation.onCompleted.addListener(onCompleted);
 
-/*
- remove all identities that are leftover from a shutdown of the extension
- this is needed during development, all cases of a running browser should be covered elsewhere
- */
-
-function removeOldIdentities(identities) {
-    for (let identity of identities) {
-        if (identity.name.startsWith("shadow")) {
-            browser.contextualIdentities.remove(identity.cookieStoreId)
-                .catch((e) => console.log(e));
-        }
-    }
-    console.info("Removed old identities");
-}
-/*
-browser.contextualIdentities.query({})
-    .then(removeOldIdentities)
-*/
 browserTabs.setCurrentTab()
     .then(() => browser.tabs.query({}))
     .then(tabs =>{

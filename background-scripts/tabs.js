@@ -37,11 +37,14 @@ class Tabs{
                     console.info("Shadow container already exists")
                     return Promise.resolve(container[0]);
                 }
-                else return browser.contextualIdentities.create({
-                    name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
-                    color: "blue", //these two attributes are meaningless to us
-                    icon: "briefcase"
-            })
+                else {
+                    console.info("Creating new container")
+                    return browser.contextualIdentities.create({
+                        name: "shadow-container", // name doesn't have to be unique, as a unique id is assigned by the browser
+                        color: "blue", //these two attributes are meaningless to us
+                        icon: "briefcase"
+                    })
+                }
         })
     }
 
@@ -68,7 +71,7 @@ class Tabs{
      * @returns {*}
      */
     addShadowTab(url, tabId, origin, originDbId){
-        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId, this.shadowCookieStoreId);
+        this.tabs[tabId] = new ShadowTab(url, tabId, origin, originDbId);
         return this.tabs[tabId];
     }
 
@@ -157,6 +160,7 @@ class Tabs{
     /**
      * When a shadow tab has completed loading, all its cookies are available for comparison with the original request
      * It is necessary for some reason to wait a little longer
+     * TODO: refactor
      */
     evaluateTab(tabId){
         if (this.tabs[tabId] instanceof ShadowTab) {
@@ -165,6 +169,8 @@ class Tabs{
             setTimeout(() => {
                 this.tabs[this.tabs[tabId].originTab].evaluateRequests();
             }, 2000);
+        } else if (this.tabs[tabId] instanceof OriginTab) {
+            this.tabs[tabId].evaluateRequests();
         }
     }
 
