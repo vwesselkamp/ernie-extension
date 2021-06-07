@@ -245,13 +245,14 @@ function switchTab(event) {
     let shadowTabID = backgroundPage.browserTabs.currentTab.tabId;
     let originTabID = backgroundPage.browserTabs.currentTab.originTab;
 
-    browser.tabs.update(originTabID, {active: true})
-        .then((tab) => {
-          return browser.windows.update(tab.windowID, {focused: true})})
-        .then(() =>{
-          constructPageFromScratch();
-          backgroundPage.browserTabs.evaluateTab(shadowTabID);
-        });
+    browser.tabs.get(originTabID).then((tab) => {
+      return browser.windows.update(tab.windowId, {focused: true})
+    }).then(res => {
+      return browser.tabs.update(originTabID, {active: true})
+    }).then(() =>{
+      constructPageFromScratch();
+      backgroundPage.browserTabs.evaluateTab(shadowTabID);
+    });
   }
 
   function switchToShadowTab() {
@@ -330,7 +331,9 @@ browser.runtime.onMessage.addListener(evaluateMessage);
 for(let link of document.getElementsByClassName("tablinks")){
   link.addEventListener("click", openList);
 }
-document.getElementById("shadow-button").addEventListener("click", switchTab);
+for(let button of document.getElementsByClassName("switch")){
+  button.addEventListener("click", switchTab)
+}
 
 document.getElementById("save-button").addEventListener("click", saveShadowCookies);
 
