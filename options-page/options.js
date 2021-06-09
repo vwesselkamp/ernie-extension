@@ -42,7 +42,7 @@ function restoreOptions() {
     debug.then((res) => {
         // to make debug mode default
         if(res.debug === undefined) {
-            document.querySelector("#debug").checked = true;
+            document.querySelector("#debug").checked = false;
         } else {
             document.querySelector("#debug").checked = res.debug;
         }
