@@ -309,7 +309,7 @@ async function getDebugMode(){
   let res = await browser.storage.local.get('debug');
   // to make debug mode default
   if(res.debug === undefined) {
-    return true;
+    return false;
   } else {
     return res.debug;
   }
