@@ -2,7 +2,7 @@
   "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
   "manifest_version": 2,
   "name": "Tracking Categorizer",
-  "version": "1.0",
+  "version": "2.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "addon@example.com",
