@@ -329,15 +329,15 @@ class WebRequest{
      * Otherwise check further back in the redirection chain
      */
     isInitiatedByPredecessor() {
-        if(this.predecessor && this.predecessor.domain !== this.domain){
-            if (browserTabs.getTab(this.browserTabId).isTracker(this.predecessor.domain)) {
+        if(this.predecessor){
+            if (this.predecessor.domain !== this.domain && browserTabs.getTab(this.browserTabId).isTracker(this.predecessor.domain)) {
                 console.info("Redirect origin " + this.predecessor.domain + " for " + this.url + " is a tracker")
                 return true;
             } else {
                 return this.predecessor.isInitiatedByPredecessor();
             }
-        } else {
-            return this.isRefererNeitherFirstNorSelf();
+        } else if (this.isRefererNeitherFirstNorSelf()){
+            return !!browserTabs.getTab(this.browserTabId).isTracker(this.referer);
         }
 }
 
