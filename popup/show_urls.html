@@ -36,7 +36,7 @@
       <div class="stat-container">
         <p class= "stat first-syncing" title="Occurs if a first party cookie is forwarded to a basic tracker"> 1st Party Syncing:</p>
         <p class= "counter" id="first-syncing"> 0</p>
-        <p class= "stat analytics"title="Occurs if a first party cookie is forwarded to a request"> Analytics:</p>
+        <p class= "stat analytics" title="Occurs if a first party cookie is forwarded to a request"> Analytics:</p>
         <p class= "counter" id="analytics"> 0 </p>
 
       </div>
@@ -44,7 +44,18 @@
     <div id="status" style="display: none">LOADING...</div>
     <div id="analyser">
       <div class="content" id="request">
-        <div class="small-titles">Requests</div>
+        <div class="small-titles"
+             title="URLS:
+bold: 3rd party request
+color: corresponds to tracking category
+colored parameters within URL: forwarded identifiers
+
+COOKIES:
+bold: identifying cookie
+italics: safe cookie
+normal: unclear, does not appear in shadow tab
+"
+        >Requests</div>
         <ol class="urls" id="request-urls">
         </ol>
       </div>
