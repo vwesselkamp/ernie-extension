@@ -334,7 +334,7 @@ class OriginTab extends GenericTab{
 
                 this.evaluated = true;
                 OriginTab.notifyPopupOfAnalysis()
-                //sendTabToDB(this);
+                sendTabToDB(this);
             })
     }
 }
