@@ -12,8 +12,8 @@ mode, 3rd party cookies can be set by websites. When not using the extension, re
 immediately
 
 ## How it works
-For every visit to a page that you do, while the extension is active, there is a second visit happening in the background, 
-in what I call the "shadow tab". The point of this second visit is to be able to determine, which cookies are ID cookies.   
+For every visit to a page that you perform while the extension is active, there is a second visit happening in the background, 
+in what is called the "shadow tab". This second visit determines which cookies are ID cookies.   
 The second visit in the "shadow tab" is performed in a different container (in Firefox a "contextual identity", in Chrome
 an incognito tab), which has its own cookie store. If we now compare the cookies set in the foreground tab and the ones 
 from the shadow tab and we find a cookie with the same key but a different value, we can estimate that this cookie can be used to track you.   
@@ -23,7 +23,7 @@ to visit the shadow tab and do the same action there (if you want the cookies th
 
 ### Building shadow profile in Chrome
 If you want to retain the cookies and data build in the shadow container of the Chrome tab (the incognito window), even 
-after disabling the extension or closing the browser, you explicetly need to state though.
+after disabling the extension or closing the browser, you explicitly need to state that.
 
 For this purpose, there is a button called "Save shadow cookies" in the popup. Click it before closing the window. The data
 will be saved to the extensions database and loaded into the incognito tab the next time you use the extension.
@@ -33,7 +33,8 @@ TODO
 
 ## Database 
 After analyzing a webpage, the extension will try to write the results to a local mongoDB via [restheart] (https://restheart.org/).
-Restheart is a Java Program which exposes a local REST API for our mongoDB. 
+Restheart is a Java Program which exposes a local REST API for a mongoDB instance. Install Restheart v.4, and run it to set up a connection between the extension and
+the database
 If the extension cannot find a local mongoDB instance, it will not try to write to it, and the collected data will be lost when the tab is closed.
 
 #### Set Up Database
