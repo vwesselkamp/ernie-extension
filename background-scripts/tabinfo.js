@@ -67,6 +67,11 @@ class GenericTab {
         domain.addCookies(cookies);
     }
 
+    extendWebRequestIdParams(domainName, idParam){
+        let domain = this.upsertDomain(domainName);
+        domain.addParam(idParam);
+    }
+
     markDomainAsTracker(domainName){
         let domain = this.upsertDomain(domainName)
         domain.setTracker(true);
@@ -109,7 +114,7 @@ class GenericTab {
      * @returns {boolean}
      */
     integrateResponse(responseDetails){
-        let request = this.getCorrespondingRequest(responseDetails.url, responseDetails.id);
+        let request = this.getCorrespondingRequest(responseDetails.url, responseDetails.requestId);
         if(!request){
             console.warn("No corresponding request found for this response");
             return false;
@@ -336,7 +341,7 @@ class OriginTab extends GenericTab{
 
                 this.evaluated = true;
                 OriginTab.notifyPopupOfAnalysis()
-                //sendTabToDB(this);
+                sendTabToDB(this);
             })
     }
 }
