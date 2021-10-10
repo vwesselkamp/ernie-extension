@@ -1,7 +1,7 @@
 {
   "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
   "manifest_version": 2,
-  "name": "Tracking Categorizer",
+  "name": "Ernie",
   "version": "1.0",
 
   "permissions": [
