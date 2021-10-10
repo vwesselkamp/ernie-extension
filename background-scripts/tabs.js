@@ -30,7 +30,7 @@ class Tabs{
         return typeof this.tabs[tabID] !== 'undefined';
     }
 
-    createContextualIdentity = () => {
+    createContextualIdentity(){
         return browser.contextualIdentities.query({name: "shadow-container"})
             .then(container => {
                 if (container[0]) {

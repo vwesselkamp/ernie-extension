@@ -1,3 +1,21 @@
+var CookieType = Object.freeze({
+    "IDENTIFYING":"identifying",
+    "SAFE":"safe",
+    "NONE":"normal",
+})
+
+var CookieMode = Object.freeze({
+    "SET": "SET",
+    "SEND": "SEND",
+    "JS": "javascript"
+})
+
+var ParameterType = Object.freeze({
+    "URL_KEY":"url_key",
+    "URL_VALUE":"url_value",
+    "PATH":"path",
+})
+
 /**
  * Data about each cookie is stored in this class
  */
@@ -11,31 +29,19 @@ class Cookie{
         this.key = key;
         this.value = value;
         this.mode = mode;
-        this.category = Cookie.CookieType.NONE // cookie default to being non-identifying, non-safe
+        this.category = CookieType.NONE // cookie default to being non-identifying, non-safe
     }
 
-    static CookieType = Object.freeze({
-        "IDENTIFYING":"identifying",
-        "SAFE":"safe",
-        "NONE":"normal",
-    })
-
-    static Mode = Object.freeze({
-        "SET": "SET",
-        "SEND": "SEND",
-        "JS": "javascript"
-    })
-
     get identifying(){
-        return this.category === Cookie.CookieType.IDENTIFYING;
+        return this.category === CookieType.IDENTIFYING;
     }
 
     get safe(){
-        return this.category === Cookie.CookieType.SAFE;
+        return this.category === CookieType.SAFE;
     }
 
     get content(){
-        if(this.mode === Cookie.Mode.JS){
+        if(this.mode === CookieMode.JS){
             return this.key + ": " + this.value;
         } else{
             return this.mode + " - " + this.key + ": " + this.value;
@@ -54,9 +60,9 @@ class Cookie{
         for (let cookie of comparisonCookies){
             if(cookie.key === this.key) {
                 if (cookie.value !== this.value && !this.safe) {
-                    this.category = Cookie.CookieType.IDENTIFYING
+                    this.category = CookieType.IDENTIFYING
                 } else {
-                    this.category = Cookie.CookieType.SAFE
+                    this.category = CookieType.SAFE
                 }
             }
         }
@@ -67,7 +73,7 @@ class Cookie{
      * @param domain
      */
     writeToDB(domain) {
-        if(this.category !== Cookie.CookieType.SAFE) return ;
+        if(this.category !== CookieType.SAFE) return ;
         let cookieObjectStore = db.transaction("cookies", "readwrite").objectStore("cookies");
         let cookie = {domain: domain, key: this.key, value: this.value};
         cookieObjectStore.add(cookie);
@@ -75,7 +81,7 @@ class Cookie{
 
     setIfSafeCookie(safeCookie) {
         if(safeCookie.key === this.key && safeCookie.value === this.value) {
-            this.category = Cookie.CookieType.SAFE
+            this.category = CookieType.SAFE
         }
     }
 }
@@ -86,18 +92,12 @@ class Cookie{
 class Parameter{
     /**
      * @param value{string} of the parameter
-     * @param originDomain{string} is the URLs domain
+     * @param type{string} is the URLs type
      */
     constructor(value, type) {
         this.value = value;
         this.type = type
     }
-
-    static ParameterType = Object.freeze({
-        "URL_KEY":"url_key",
-        "URL_VALUE":"url_value",
-        "PATH":"path",
-    })
 
     addOrigin(originDomain){
         this.originDomain = originDomain;
@@ -213,7 +213,7 @@ class Domain {
      * shadow request, these are set. This also means, that the early requests are also classified correctly
      */
     setIdentifyingCookies(shadowTabId) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             let shadowDomain = browserTabs.getTab(shadowTabId).domains.find(sd => sd.name === this.name)
             if (shadowDomain) {
                 for (let cookie of this.cookies) {
