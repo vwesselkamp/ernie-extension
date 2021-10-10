@@ -23,7 +23,7 @@
       "background-scripts/webrequest.js",
       "background-scripts/tabinfo.js",
       "background-scripts/helper-classes.js",
-      "libraries/psl.min.js"]
+      "libraries/psl.js"]
   },
 
   "options_ui": {
