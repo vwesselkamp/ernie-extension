@@ -1,12 +1,11 @@
 {
   "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
   "manifest_version": 2,
-  "name": "Tracking Categorizer",
-  "version": "2.0",
+  "name": "Ernie",
+  "version": "1.0",
   "browser_specific_settings": {
     "gecko": {
-      "id": "addon@example.com",
-      "strict_min_version": "42.0"
+      "strict_min_version": "61.0"
     }
   },
 
