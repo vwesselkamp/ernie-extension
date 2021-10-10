@@ -82,7 +82,7 @@ class Tabs{
         return this.tabs[this.currentTabId];
     }
 
-    tabExists = (tabID) => {
+    tabExists(tabID){
         return typeof this.tabs[tabID] !== 'undefined';
     }
 
