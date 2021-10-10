@@ -145,7 +145,7 @@ class GenericTab {
                 console.info("No corresponding cookie for \n " + JSON.stringify(storageCookie))
                 let strippedDomainName = removeLeadingDots(storageCookie.domain);
                 this.upsertDomain(getSecondLevelDomainFromDomain(strippedDomainName))
-                    .addCookies([new Cookie(storageCookie.name, storageCookie.value, Cookie.Mode.JS)])
+                    .addCookies([new Cookie(storageCookie.name, storageCookie.value, CookieMode.JS)])
             }
         }
 
@@ -218,7 +218,6 @@ class OriginTab extends GenericTab{
     createShadowTab(windowID){
         /**
          * Inside our container, a new hidden tab is created, that mirrors the request of the original tab
-         * @param identity
          */
 
         let createTab = () => {
@@ -327,7 +326,7 @@ class OriginTab extends GenericTab{
         browserTabs.getTab(this.shadowTabId).logCookiesFromJavascript()
 
         setCookieCharacteristics.call(this)
-            .then(r => {
+            .then(() => {
                 basicTracking.call(this);
                 setTrackingByTracker.call(this);
                 setCookieSyncing.call(this);

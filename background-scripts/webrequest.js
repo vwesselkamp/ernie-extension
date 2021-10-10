@@ -125,13 +125,13 @@ class WebRequest{
         let newUrl = new URL(this.url);
         let splitParams = [];
         for(let [key, value] of newUrl.searchParams){
-            processAndStore(value, Parameter.ParameterType.URL_VALUE)
-            processAndStore(key, Parameter.ParameterType.URL_KEY)
+            processAndStore(value, ParameterType.URL_VALUE)
+            processAndStore(key, ParameterType.URL_KEY)
         }
 
         for(let path of newUrl.pathname.split('/')){
             if(path === "") continue;
-            processAndStore(path, Parameter.ParameterType.PATH);
+            processAndStore(path, ParameterType.PATH);
         }
         return splitParams;
     }
@@ -168,7 +168,7 @@ class WebRequest{
                 .split(';')
                 .map(v => v.split(/=(.+)/));
             for (let cookie of rawCookies) {
-                this.cookies.push(this.processCookie(cookie, Cookie.Mode.SEND));
+                this.cookies.push(this.processCookie(cookie, CookieMode.SEND));
             }
         }
     }
@@ -238,7 +238,7 @@ class WebRequest{
              */
             result = result[0].split(/=(.+)/);
             try{
-                collectedCookies.push(this.processCookie(result, Cookie.Mode.SET));
+                collectedCookies.push(this.processCookie(result, CookieMode.SET));
             } catch (e){
                 console.warn(e + "\nParsed cookie: " + result[0] + " " + result[1] + "\nLine: " + line);
             }
