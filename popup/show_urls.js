@@ -22,9 +22,9 @@ function toggleExpansion(event) {
 function insertWebRequest(request, debugMode) {
   function completeUrlElement(urlElement) {
     if(debugMode){
-      urlElement.innerHTML = request.debugContent;
+      urlElement.innerHTML = DOMPurify.sanitize(request.debugContent);
     } else {
-      urlElement.innerHTML = request.content;
+      urlElement.innerHTML = DOMPurify.sanitize(request.content);
     }
     urlElement.className = "url "
     urlElement.addEventListener("click", toggleExpansion)
@@ -32,7 +32,7 @@ function insertWebRequest(request, debugMode) {
 
   function createCookieElement(cookie) {
     let cookieElement = document.createElement("div");
-    cookieElement.innerText = cookie.content;
+    cookieElement.innerText = DOMPurify.sanitize(cookie.content);
     cookieElement.className = "cookie " + cookie.category + " " + request.category;
     cookieElement.addEventListener("click", toggleExpansion)
     return cookieElement;
@@ -74,11 +74,11 @@ function insertWebRequest(request, debugMode) {
   For requests without cookies, the requestElement will also have the class "url". For requests with cookies
   the "url" class will instead be assigned to a sub element, the summary.
    */
-  requestElement.className += request.category + " " + request.partyString;
+  requestElement.className += DOMPurify.sanitize(request.category + " " + request.partyString);
   if(request.predecessor){
-    requestElement.title = request.predecessor.domain;
+    requestElement.title = DOMPurify.sanitize(request.predecessor.domain);
   } else if (request.referer){
-    requestElement.title = request.referer;
+    requestElement.title = DOMPurify.sanitize(request.referer);
   }
   return requestElement;
 }
@@ -86,7 +86,7 @@ function insertWebRequest(request, debugMode) {
 function insertJSCookie(domain, cookie){
   if(cookie.mode === "javascript"){
     let cookieElement = document.createElement("div");
-    cookieElement.innerText = domain + " - " + cookie.content;
+    cookieElement.innerText = DOMPurify.sanitize(domain + " - " + cookie.content);
     cookieElement.className = "cookie " + cookie.category + " " + request.category;
     cookieElement.addEventListener("click", toggleExpansion)
 
@@ -167,10 +167,10 @@ function constructHeader() {
   // if shadowTabId exists, it is a OriginTab. Instanceof does not work for some reason
   if(backgroundPage.browserTabs.currentTab.shadowTabId){
     // set page and clean content of the request/response windows
-    document.getElementById("current-page").innerHTML = "Page: " + page
+    document.getElementById("current-page").innerHTML = DOMPurify.sanitize("Page: " + page)
     document.getElementById("button").innerText = "Show Shadow Tab"
   } else {
-    document.getElementById("current-page").innerHTML = "Page is Shadow for " + page
+    document.getElementById("current-page").innerHTML = DOMPurify.sanitize("Page is Shadow for " + page)
     document.getElementById("button").innerText = "Hide Shadow Tab"
   }
 }
