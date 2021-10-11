@@ -1,8 +1,10 @@
 {
-  "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
+  "description": "This extension is able to recognize complex tracking techniques and categorize HTTP requests into one of six tracking categories.",
   "manifest_version": 2,
   "name": "Ernie",
   "version": "1.0",
+  "icons": {"128": "button/logo.png",
+            "48":  "button/logo.png"},
 
   "permissions": [
     "webRequest",
