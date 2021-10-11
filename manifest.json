@@ -2,7 +2,7 @@
   "description": "Recognizing and Categorizing 3rd Party Cookie Trackers",
   "manifest_version": 2,
   "name": "Ernie",
-  "version": "1.1",
+  "version": "1.2",
   "browser_specific_settings": {
     "gecko": {
       "strict_min_version": "61.0"
