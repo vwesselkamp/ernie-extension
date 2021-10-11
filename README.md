@@ -10,8 +10,7 @@ This allows the user to get a quick overview over the tracking techniques use by
 it is optionally possible to save the data in a local database. 
 
 ## Installation
-It is possible to install the extension from this repository directly. We also plan to release the extension to the Firefox and
-Chrome add-on stores. To install the extension, download the release for the correct browser from the 
+It is possible to install the extension from this repository directly, or [here](https://addons.mozilla.org/en-US/firefox/addon/ernie/) for Firefox. We also plan to release the extension Chrome add-on stores. To install the extension, download the release for the correct browser from the 
 [release page](https://github.com/vwesselkamp/ernie-extension/releases). 
 
 ### [Optional] Set up local database
